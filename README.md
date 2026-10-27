@@ -129,10 +129,37 @@ Phần AI nặng nhất, nên chia nhỏ:
 
 ## 6. Chạy dự án
 
+### Cách 1: Docker (đơn giản nhất, cả nhóm giống nhau)
+
 ```bash
 cp .env.example .env
 docker compose up -d --build
-# frontend: http://localhost:5173
-# backend (Swagger): http://localhost:3000/api/docs
-# ai-service (docs): http://localhost:8000/docs
+# Giao diện:        http://localhost:5173
+# Backend Swagger:  http://localhost:3000/api/docs
+# AI service docs:  http://localhost:8000/docs
 ```
+
+### Cách 2: Chạy từng phần để code (cần Node 22+, Python 3.11+, MongoDB)
+
+```bash
+# Mongo chạy sẵn bằng Docker:  docker compose up -d mongo
+# Khi chạy ngoài Docker, trong .env đổi MONGO_URI thành mongodb://localhost:27017/supermarket
+# và AI_SERVICE_URL thành http://localhost:8000
+
+cd backend    && npm install && npm run start:dev      # http://localhost:3000/api/docs
+cd frontend   && npm install && npm run dev            # http://localhost:5173 (tự chuyển /api sang backend)
+cd ai-service && python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+              pip install -r requirements.txt && uvicorn app.main:app --reload --port 8000
+```
+
+Kiểm tra: `npm test` (backend), `npm run build` (frontend), `pytest` (ai-service).
+
+## 7. Những gì đã có sẵn trong khung code
+
+| Phần | Đã có | Việc tiếp theo |
+|---|---|---|
+| backend | Kết nối MongoDB, JWT + `@Roles()` + `@Public()`, đăng ký/đăng nhập, `GET /users/me`, định dạng response/lỗi đúng `API.md`, Swagger, **module mẫu `categories`** | Mỗi người copy cấu trúc `categories` để làm module của mình |
+| frontend | Router, layout 3 vai trò, chặn route theo vai trò, axios gắn JWT, đăng nhập/đăng ký, trang chủ mẫu gọi `GET /categories` | Thêm trang mới theo mẫu `HomePage` và `api/*.api.ts` |
+| ai-service | FastAPI, `/health`, `/chat`, `/recommend`, `/forecast/run` (trả dữ liệu mẫu), kiểm tra `X-Internal-Key` | Bảo thay phần `TODO` trong `services/` bằng AI thật |
+
+Lưu ý: tài khoản `STAFF`/`ADMIN` hiện chưa có API tạo; tạm thời tạo bằng script seed trong `database/seed/` (đặt `role` và mật khẩu đã băm bcrypt) hoặc sửa `role` trực tiếp trong MongoDB.

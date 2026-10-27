@@ -20,3 +20,5 @@ ai-service/app/ml/models/*.joblib
 
 # Dữ liệu MongoDB local
 mongo-data/
+*.tsbuildinfo
+.pytest_cache/
