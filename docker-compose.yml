@@ -1,0 +1,39 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      - mongo
+      - ai-service
+
+  ai-service:
+    build: ./ai-service
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    depends_on:
+      - mongo
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:
