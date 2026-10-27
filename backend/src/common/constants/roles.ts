@@ -1,10 +1,1 @@
-export enum Role {
-  CUSTOMER = 'CUSTOMER',
-  STAFF = 'STAFF',
-  ADMIN = 'ADMIN',
-}
-
-export enum UserStatus {
-  ACTIVE = 'ACTIVE',
-  LOCKED = 'LOCKED',
-}
+export { Role, UserStatus } from './roles.enum';

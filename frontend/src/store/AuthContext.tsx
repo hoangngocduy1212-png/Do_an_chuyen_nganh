@@ -12,6 +12,12 @@ const AuthContext = createContext<AuthState | null>(null);
 const USER_KEY = 'authUser';
 
 function readUser(): AuthUser | null {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    if (import.meta.env.VITE_MOCK_USER === 'customer') {
+      return { userId: 'mock-customer-01', fullName: 'Nguyễn Minh Anh', email: 'khachhang@muadee.vn', role: 'CUSTOMER' };
+    }
+    if (import.meta.env.VITE_MOCK_USER === 'guest') return null;
+  }
   try {
     const raw = localStorage.getItem(USER_KEY);
     return raw && localStorage.getItem(TOKEN_KEY) ? (JSON.parse(raw) as AuthUser) : null;

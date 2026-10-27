@@ -48,6 +48,8 @@
 | POST | `/auth/register` | GUEST | Đăng ký khách hàng: tạo User (role CUSTOMER) + Customer + Cart + Membership | User, Customer, Cart, Membership |
 | POST | `/auth/login` | GUEST | Đăng nhập, trả `accessToken`, `refreshToken`, thông tin user | User |
 | POST | `/auth/refresh` | GUEST | Cấp lại access token | User |
+| POST | `/auth/forgot-password` | GUEST | Yêu cầu đặt lại mật khẩu: nhận `{ email }`, nếu email tồn tại thì tạo token đặt lại (hết hạn sau 15 phút, dùng một lần) và gửi email chứa liên kết `/reset-password?token=...`. Luôn trả 200 với cùng một thông báo dù email có tồn tại hay không (tránh dò email) | User |
+| POST | `/auth/reset-password` | GUEST | Đặt mật khẩu mới: nhận `{ token, newPassword }`, kiểm tra token còn hạn, băm mật khẩu mới, vô hiệu hóa token và thu hồi mọi refresh token đang có | User |
 | POST | `/auth/logout` | Đã đăng nhập | Đăng xuất (thu hồi refresh token) | - |
 | GET | `/users/me` | Đã đăng nhập | Xem hồ sơ cá nhân | User, Customer/Employee |
 | PATCH | `/users/me` | Đã đăng nhập | Sửa tên, SĐT, ảnh đại diện, địa chỉ mặc định | User, Customer |
@@ -71,6 +73,71 @@ Ví dụ đăng nhập:
   "user": { "userId": "u1", "fullName": "Nguyen A", "role": "CUSTOMER" } } }
 ```
 
+Ví dụ quên và đặt lại mật khẩu:
+
+```json
+// POST /auth/forgot-password — request
+{ "email": "a@gmail.com" }
+// response 200
+{ "success": true, "data": { "message": "Nếu email tồn tại, liên kết đặt lại mật khẩu đã được gửi" } }
+
+// POST /auth/reset-password — request
+{ "token": "...", "newPassword": "NewPass123" }
+// response 200
+{ "success": true, "data": { "message": "Đặt lại mật khẩu thành công" } }
+// lỗi 400
+{ "success": false, "error": { "code": "INVALID_OR_EXPIRED_TOKEN", "message": "Liên kết đã hết hạn hoặc không hợp lệ" } }
+```
+
+### Mã lỗi của Auth
+
+- `INVALID_CREDENTIALS` (401): Email hoặc mật khẩu không đúng.
+- `ACCOUNT_LOCKED` (403): Tài khoản đã bị khóa.
+- `INVALID_OR_EXPIRED_TOKEN` (400): Liên kết đặt lại không hợp lệ hoặc đã hết hạn.
+- `VALIDATION_ERROR` (400): Dữ liệu gửi lên không hợp lệ.
+- `TOO_MANY_REQUESTS` (429): Giới hạn số lần gọi forgot-password, ví dụ 5 lần/giờ cho mỗi email và mỗi IP.
+
+### Quên và đặt lại mật khẩu
+
+#### Gửi hướng dẫn đặt lại mật khẩu
+
+`POST /auth/forgot-password` — quyền `GUEST`. Gửi hướng dẫn đặt lại mật khẩu tới email đã đăng ký. Để tránh dò tìm tài khoản, phản hồi thành công giống nhau dù email có tồn tại hay không.
+
+Request:
+
+```json
+{ "email": "a@gmail.com" }
+```
+
+Response `200`:
+
+```json
+{ "success": true, "data": {
+  "message": "Nếu email tồn tại, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn." } }
+```
+
+Liên kết đặt lại nên chứa token dùng một lần, có thời hạn ngắn và không chứa thông tin nhạy cảm khác. Nếu email sai định dạng, trả `400` với mã lỗi `VALIDATION_ERROR`.
+
+#### Đặt mật khẩu mới
+
+`POST /auth/reset-password` — quyền `GUEST`. Xác thực token đặt lại và cập nhật mật khẩu. Token đã dùng, không hợp lệ hoặc hết hạn không được chấp nhận.
+
+Request:
+
+```json
+{ "token": "reset-token-from-email", "newPassword": "matkhau-moi-an-toan" }
+```
+
+Response `200`:
+
+```json
+{ "success": true, "data": { "message": "Mật khẩu của bạn đã được cập nhật." } }
+```
+
+Lỗi `400` trả mã `INVALID_OR_EXPIRED_TOKEN` nếu token không hợp lệ, đã dùng hoặc hết hạn; trả mã `VALIDATION_ERROR` nếu mật khẩu mới không đạt chính sách tối thiểu 8 ký tự.
+
+> Cần bổ sung hai trường vào collection User ở mục 3.2.3 của báo cáo: `passwordResetToken` (String, lưu bản băm của token, không lưu token gốc) và `passwordResetExpires` (Date).
+
 ## 2. Cửa hàng, danh mục, sản phẩm, tồn kho (`stores`, `categories`, `products`, `inventory`)
 
 | Method | Endpoint | Quyền | Mô tả | Collection |
@@ -80,13 +147,15 @@ Ví dụ đăng nhập:
 | POST / PATCH | `/stores`, `/stores/:id` | ADMIN | Thêm/sửa cửa hàng, bật/tắt hoạt động | Store |
 | GET | `/categories` | GUEST | Danh sách danh mục | Category |
 | POST / PATCH / DELETE | `/categories`, `/categories/:id` | ADMIN, STAFF | Quản lý danh mục | Category |
-| GET | `/products` | GUEST | Danh sách + tìm kiếm + lọc. Query: `q`, `categoryId`, `minPrice`, `maxPrice`, `storeId`, `sort`, `page`, `limit`. Khi có `storeId` trả kèm `stock` tại cửa hàng đó | Product, Inventory |
+| GET | `/products` | GUEST | Danh sách + tìm kiếm + lọc. Query: `q`, `categoryId`, `minPrice`, `maxPrice`, `storeId`, `collection`, `inStock`, `sort`, `page`, `limit`. `collection=bestseller` sắp theo tổng số lượng bán 30 ngày gần nhất tại `storeId`, chỉ tính đơn có `orderStatus=DELIVERED`; `collection=deals` chỉ lấy sản phẩm có `salePrice` và đang trong khoảng `saleStartDate`–`saleEndDate`. `inStock=true` chỉ lấy sản phẩm còn hàng tại `storeId`. `sort`: `price`, `-price`, `-createdAt`, `-sold`, `-discount` (ngoài các cách sắp xếp phù hợp nhất hiện có). Khi có `storeId` trả kèm `stock`; mỗi sản phẩm trả thêm `avgRating`, `reviewCount`, `soldCount` (với `collection=bestseller`), `salePrice`, `saleEndDate` (nếu có) | Product, Inventory |
 | GET | `/products/:id` | GUEST | Chi tiết sản phẩm (mô tả, giá, đơn vị, đánh giá trung bình) | Product, Review |
 | POST | `/products` | ADMIN, STAFF | Thêm sản phẩm (kèm upload ảnh) | Product |
 | PATCH | `/products/:id` | ADMIN, STAFF | Sửa sản phẩm, đổi trạng thái đang bán/ngừng bán | Product |
 | GET | `/inventory` | ADMIN, STAFF | Tồn kho. Query: `storeId`, `productId`, `lowStock=true` (STAFF tự lọc theo cửa hàng của mình) | Inventory |
 | POST | `/inventory/import` | ADMIN | Nhập kho: `{ storeId, productId, quantity }` | Inventory |
 | POST | `/inventory/export` | ADMIN | Xuất kho. Lỗi `OUT_OF_STOCK` nếu vượt tồn | Inventory |
+
+Ghi chú: Cần bổ sung vào collection Product ở mục 3.2.3 của báo cáo ba trường tùy chọn: `salePrice` (Number), `saleStartDate` (Date), `saleEndDate` (Date).
 
 ## 3. Giỏ hàng (`carts`)
 
@@ -166,6 +235,7 @@ Phản hồi theo dõi:
 | Method | Endpoint | Quyền | Mô tả | Collection |
 |---|---|---|---|---|
 | GET | `/vouchers` | ADMIN | Danh sách voucher | Voucher |
+| GET | `/vouchers/available` | CUSTOMER | Danh sách voucher đang còn hiệu lực (`startDate` ≤ hôm nay ≤ `endDate`), dùng cho trang "Voucher của tôi" | Voucher |
 | POST / PATCH | `/vouchers`, `/vouchers/:id` | ADMIN | Tạo/sửa voucher | Voucher |
 | POST | `/vouchers/validate` | CUSTOMER | Kiểm tra mã `{ code, orderAmount }`, trả số tiền giảm | Voucher |
 | GET | `/memberships/me` | CUSTOMER | Xem điểm và hạng thành viên | Membership |

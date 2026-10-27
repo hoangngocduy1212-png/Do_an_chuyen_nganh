@@ -4,6 +4,7 @@ import { Role } from '../constants/roles';
 export interface AuthUser {
   userId: string;
   role: Role;
+  storeId?: string;
 }
 
 /** Lay user dang dang nhap tu JWT: @CurrentUser() user: AuthUser */

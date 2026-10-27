@@ -6,7 +6,10 @@ import { MongooseModule } from '@nestjs/mongoose';
   imports: [
     MongooseModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (cfg: ConfigService) => ({ uri: cfg.get<string>('mongoUri') }),
+      useFactory: (cfg: ConfigService) => ({
+        uri: cfg.get<string>('mongoUri'),
+        autoIndex: cfg.get<string>('nodeEnv') !== 'production',
+      }),
     }),
   ],
 })

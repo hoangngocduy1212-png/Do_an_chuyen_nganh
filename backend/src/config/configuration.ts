@@ -1,14 +1,57 @@
-// Doc bien moi truong tu .env (xem .env.example o thu muc goc)
+import Joi from 'joi';
+
+const durationPattern = /^\d+[smhd]$/;
+
+export const environmentValidationSchema = Joi.object({
+  BACKEND_PORT: Joi.number().port().default(3000),
+  MONGODB_URI: Joi.string().uri().required(),
+  JWT_ACCESS_SECRET: Joi.string().min(32).required(),
+  JWT_REFRESH_SECRET: Joi.string().min(32).required(),
+  JWT_ACCESS_EXPIRES: Joi.string().pattern(durationPattern).default('15m'),
+  JWT_REFRESH_EXPIRES: Joi.string().pattern(durationPattern).default('7d'),
+  BCRYPT_COST: Joi.number().integer().min(10).max(15).default(12),
+  FRONTEND_URL: Joi.string().uri({ scheme: ['http', 'https'] }).required(),
+  MAIL_DRIVER: Joi.string().valid('console', 'smtp').default('console'),
+  SMTP_HOST: Joi.when('MAIL_DRIVER', { is: 'smtp', then: Joi.string().required(), otherwise: Joi.string().allow('').default('') }),
+  SMTP_PORT: Joi.when('MAIL_DRIVER', { is: 'smtp', then: Joi.number().port().required(), otherwise: Joi.number().port().default(587) }),
+  SMTP_USER: Joi.when('MAIL_DRIVER', { is: 'smtp', then: Joi.string().required(), otherwise: Joi.string().allow('').default('') }),
+  SMTP_PASS: Joi.when('MAIL_DRIVER', { is: 'smtp', then: Joi.string().required(), otherwise: Joi.string().allow('').default('') }),
+  MAIL_FROM: Joi.string().default('Muadee <no-reply@muadee.vn>'),
+  AI_SERVICE_URL: Joi.string().uri().default('http://localhost:8000'),
+  AI_SERVICE_TIMEOUT_MS: Joi.number().integer().positive().default(8000),
+  INTERNAL_API_KEY: Joi.string().allow('').default(''),
+});
+
+function durationInSeconds(duration: string): number {
+  const [, amountText, unit] = duration.match(/^(\d+)([smhd])$/) ?? [];
+  const amount = Number(amountText);
+  const multipliers: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
+  return amount * multipliers[unit];
+}
+
 export default () => ({
-  port: parseInt(process.env.BACKEND_PORT ?? '3000', 10),
-  mongoUri: process.env.MONGO_URI ?? 'mongodb://localhost:27017/supermarket',
+  port: Number(process.env.BACKEND_PORT ?? 3000),
+  nodeEnv: process.env.NODE_ENV ?? 'development',
+  mongoUri: process.env.MONGODB_URI ?? process.env.MONGO_URI,
+  frontendUrl: process.env.FRONTEND_URL,
   jwt: {
-    secret: process.env.JWT_SECRET ?? 'dev-secret-doi-sau',
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '15m',
+    accessSecret: process.env.JWT_ACCESS_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    accessExpires: durationInSeconds(process.env.JWT_ACCESS_EXPIRES ?? '15m'),
+    refreshExpires: durationInSeconds(process.env.JWT_REFRESH_EXPIRES ?? '7d'),
+  },
+  bcryptCost: Number(process.env.BCRYPT_COST ?? 12),
+  mail: {
+    driver: process.env.MAIL_DRIVER ?? 'console',
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT ?? 587),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    from: process.env.MAIL_FROM ?? 'Muadee <no-reply@muadee.vn>',
   },
   ai: {
     url: process.env.AI_SERVICE_URL ?? 'http://localhost:8000',
-    timeoutMs: parseInt(process.env.AI_SERVICE_TIMEOUT_MS ?? '8000', 10),
+    timeoutMs: Number(process.env.AI_SERVICE_TIMEOUT_MS ?? 8000),
     internalKey: process.env.INTERNAL_API_KEY ?? '',
   },
 });
