@@ -161,6 +161,14 @@ function makeCatalog(): { categories: SeedRecord[]; products: SeedProduct[]; pro
     updatedAt: new Date(),
   }));
   const units = ['kg', 'gói', 'hộp', 'chai'];
+    const categoryImages = [
+      'https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=800&q=85',
+      'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=800&q=85',
+      'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=800&q=85',
+      'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=800&q=85',
+      'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=85',
+      'https://images.unsplash.com/photo-1547514701-42782101795e?auto=format&fit=crop&w=800&q=85',
+    ];
   const products: SeedProduct[] = [];
   const productRecords: SeedRecord[] = [];
 
@@ -177,9 +185,7 @@ function makeCatalog(): { categories: SeedRecord[]; products: SeedProduct[]; pro
       const productId = idFor('product', index);
       const saleStartDate = sale ? daysAgo(saleIsExpired ? 20 : 2) : undefined;
       const saleEndDate = sale ? daysAgo(saleIsExpired ? 3 : -5) : undefined;
-      const image = [5, 27, 49].includes(index)
-        ? (index === 5 ? '' : 'https://example.invalid/muadee-image.jpg')
-        : `https://images.example.com/products/${productId}.jpg`;
+      const image = categoryImages[categoryIndex];
       products.push({ productId, productName, categoryId: idFor('category', categoryIndex + 1), price, unit, weighted });
       productRecords.push({
         productId,

@@ -20,11 +20,29 @@ import { checkoutStore, useCheckout } from '../../store/checkoutStore';
 import { storeSelectionStore, useStoreSelection } from '../../store/storeSelectionStore';
 import type { MembershipSummary } from '../../types/user';
 import type { PaymentMethod } from '../../types/order';
-import type { StoreLocation } from '../../types/store';
+import type { StoreLocation, Weekday } from '../../types/store';
 import { formatMoney } from '../../utils/money';
 
 interface CartChange { name: string; message: string; itemId: string; productId: string; quantity: number; remove: boolean }
 const pickupTimes = ['09:00–11:00', '11:00–13:00', '13:00–15:00', '15:00–17:00', '17:00–19:00', '19:00–21:00'];
+const weekdayLabels: Array<[Weekday, string]> = [
+  ['monday', 'T2'], ['tuesday', 'T3'], ['wednesday', 'T4'], ['thursday', 'T5'],
+  ['friday', 'T6'], ['saturday', 'T7'], ['sunday', 'CN'],
+];
+
+function formatOpeningHours(openingHours: StoreLocation['openingHours']): string {
+  if (typeof openingHours === 'string') return openingHours;
+  if (!openingHours) return '08:00–21:00';
+  const schedule = weekdayLabels.flatMap(([day, label]) => {
+    const hours = openingHours[day];
+    return hours && !hours.closed ? [`${label} ${hours.open}–${hours.close}`] : [];
+  });
+  if (!schedule.length) return 'Đóng cửa';
+  const times = new Set(schedule.map((entry) => entry.slice(entry.indexOf(' ') + 1)));
+  return times.size === 1 && schedule.length === weekdayLabels.length
+    ? `Hằng ngày ${schedule[0].slice(schedule[0].indexOf(' ') + 1)}`
+    : schedule.join(' · ');
+}
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -237,7 +255,7 @@ export default function CheckoutPage() {
             <div className="checkout-recipient-fields"><label className="checkout-label">Người nhận<input value={checkout.recipientName} onChange={(event) => setField({ recipientName: event.target.value })} autoComplete="name" /></label><label className="checkout-label">Số điện thoại<input value={checkout.recipientPhone} onChange={(event) => setField({ recipientPhone: event.target.value })} autoComplete="tel" inputMode="tel" /></label><label className="checkout-label checkout-address-edit">Địa chỉ<textarea value={checkout.shippingAddress} onChange={(event) => setField({ addressId: '', shippingAddress: event.target.value })} autoComplete="street-address" /></label></div>
             <div className="checkout-delivery-meta"><span><MapPin size={15} />Giao từ {store?.name ?? 'chi nhánh đang chọn'}</span><span>Phí vận chuyển ước tính: {checkingService ? 'Đang tính...' : serviceable ? formatMoney(shippingFee) : 'Chưa phục vụ'}</span></div>
             {!serviceable && <div className="serviceability-warning" role="alert"><strong>Cửa hàng này chưa giao tới địa chỉ của bạn</strong><span>Đổi cửa hàng hoặc chọn Nhận tại cửa hàng.</span><button type="button" onClick={() => window.dispatchEvent(new Event('muadee:open-store-selector'))}>Đổi cửa hàng</button><button type="button" onClick={() => chooseReceiveMethod('PICKUP')}>Chọn nhận tại cửa hàng</button></div>}
-          </> : <div className="checkout-pickup-details"><div className="pickup-store-info"><StoreIcon size={18} /><div><strong>{store?.name ?? 'Chi nhánh đang chọn'}</strong><span>{store?.address ?? 'Địa chỉ cửa hàng đang cập nhật'}</span><span>{store?.phoneNumber ?? 'Liên hệ cửa hàng để biết thêm thông tin'}</span><span>Giờ mở cửa: {store?.openingHours ?? '08:00–21:00'}</span></div></div><label className="checkout-label">Khung giờ đến lấy<select value={checkout.pickupTime} onChange={(event) => setField({ pickupTime: event.target.value })}><option value="">Chọn khung giờ</option>{pickupTimes.map((time) => <option value={time} key={time}>{time}</option>)}</select></label><label className="checkout-label">Ghi chú khi nhận hàng<textarea value={checkout.pickupNote} maxLength={200} onChange={(event) => setField({ pickupNote: event.target.value })} placeholder="Ví dụ: Tôi sẽ đến nhận sau giờ làm" /></label><small className="pickup-ready-note"><Clock3 size={14} />Đơn thường sẵn sàng sau 1–2 giờ</small></div>}
+          </> : <div className="checkout-pickup-details"><div className="pickup-store-info"><StoreIcon size={18} /><div><strong>{store?.name ?? 'Chi nhánh đang chọn'}</strong><span>{store?.address ?? 'Địa chỉ cửa hàng đang cập nhật'}</span><span>{store?.phoneNumber ?? 'Liên hệ cửa hàng để biết thêm thông tin'}</span><span>Giờ mở cửa: {formatOpeningHours(store?.openingHours)}</span></div></div><label className="checkout-label">Khung giờ đến lấy<select value={checkout.pickupTime} onChange={(event) => setField({ pickupTime: event.target.value })}><option value="">Chọn khung giờ</option>{pickupTimes.map((time) => <option value={time} key={time}>{time}</option>)}</select></label><label className="checkout-label">Ghi chú khi nhận hàng<textarea value={checkout.pickupNote} maxLength={200} onChange={(event) => setField({ pickupNote: event.target.value })} placeholder="Ví dụ: Tôi sẽ đến nhận sau giờ làm" /></label><small className="pickup-ready-note"><Clock3 size={14} />Đơn thường sẵn sàng sau 1–2 giờ</small></div>}
         </section>
 
         <section className="checkout-section"><h2><span className="checkout-step-number">3</span>Ghi chú đơn hàng <small>(tùy chọn)</small></h2><label className="checkout-label"><textarea maxLength={200} value={checkout.orderNote} onChange={(event) => setField({ orderNote: event.target.value })} placeholder="Lời nhắn cho cửa hàng (tối đa 200 ký tự)" /><span className="checkout-character-count">{checkout.orderNote.length}/200</span></label></section>
