@@ -6,6 +6,10 @@ export interface AuthUser {
   fullName: string;
   email: string;
   role: Role;
+  phoneNumber?: string;
+  createdAt?: string;
+  avatarUrl?: string;
+  defaultAddress?: string;
 }
 
 export interface ApiSuccess<T> {

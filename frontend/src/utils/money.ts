@@ -1,0 +1,1 @@
+export const formatMoney = (amount: number) => `${Math.round(amount).toLocaleString('vi-VN')}đ`;

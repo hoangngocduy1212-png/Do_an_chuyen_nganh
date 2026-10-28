@@ -25,6 +25,8 @@ export interface ChatSession {
   status: 'AI_CHATTING' | 'HANDED_OVER' | 'CLOSED';
   agentName?: string;
   messages?: ChatMessage[];
+  startedAt?: string;
+  lastMessage?: ChatMessage;
 }
 
 export interface ChatHistory {

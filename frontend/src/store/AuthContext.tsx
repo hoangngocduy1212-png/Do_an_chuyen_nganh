@@ -6,6 +6,7 @@ interface AuthState {
   user: AuthUser | null;
   signIn: (token: string, user: AuthUser) => void;
   signOut: () => void;
+  updateUser: (updates: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -40,7 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  return <AuthContext.Provider value={{ user, signIn, signOut }}>{children}</AuthContext.Provider>;
+  const updateUser = (updates: Partial<AuthUser>) => {
+    setUser((current) => {
+      if (!current) return current;
+      const updated = { ...current, ...updates };
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  return <AuthContext.Provider value={{ user, signIn, signOut, updateUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

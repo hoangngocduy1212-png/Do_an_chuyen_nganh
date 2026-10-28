@@ -1,5 +1,6 @@
 import type { ChatHistory, ChatMessage, ChatResult, ChatSession } from '../types/chat';
 import { mockProducts } from './mock/data';
+import { mockSupportHistory } from './mock/account';
 import { http, isMockEnabled, unwrapApiResponse } from './client';
 
 const mockSessions = new Map<string, ChatSession>();
@@ -11,7 +12,7 @@ export const chatApi = {
   createSession: async (): Promise<ChatSession> => {
     if (isMockEnabled) {
       const sessionId = crypto.randomUUID();
-      const session: ChatSession = { sessionId, status: mockStatus() };
+      const session: ChatSession = { sessionId, status: mockStatus(), startedAt: new Date().toISOString() };
       mockSessions.set(sessionId, session);
       mockTranscript.set(sessionId, []);
       return session;
@@ -71,5 +72,21 @@ export const chatApi = {
     }
     const response = await http.get<{ success: true; data: ChatHistory }>(`/chat/sessions/${sessionId}/messages`).then(unwrapApiResponse);
     return response;
+  },
+  history: async (sessionId: string): Promise<ChatHistory> => {
+    if (isMockEnabled) {
+      if (import.meta.env.VITE_MOCK_SUPPORT_ERROR === 'true') throw new Error('Không tải được cuộc trò chuyện');
+      const session = mockSupportHistory.find((item) => item.sessionId === sessionId) ?? mockSessions.get(sessionId);
+      if (!session) throw new Error('Không tìm thấy cuộc trò chuyện');
+      return { messages: session.messages ?? mockTranscript.get(sessionId) ?? [], status: session.status, agentName: session.agentName };
+    }
+    return http.get<{ success: true; data: ChatHistory }>(`/chat/sessions/${sessionId}/messages`).then(unwrapApiResponse);
+  },
+  myHistory: async (): Promise<ChatSession[]> => {
+    if (isMockEnabled) {
+      if (import.meta.env.VITE_MOCK_SUPPORT_ERROR === 'true') throw new Error('Không tải được lịch sử hỗ trợ');
+      return import.meta.env.VITE_MOCK_SUPPORT_EMPTY === 'true' ? [] : [...mockSupportHistory].sort((a, b) => Date.parse(b.startedAt ?? '') - Date.parse(a.startedAt ?? ''));
+    }
+    return http.get<{ success: true; data: ChatSession[] }>('/chat/sessions/my').then(unwrapApiResponse);
   },
 };

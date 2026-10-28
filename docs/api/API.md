@@ -51,10 +51,16 @@
 | POST | `/auth/forgot-password` | GUEST | Yêu cầu đặt lại mật khẩu: nhận `{ email }`, nếu email tồn tại thì tạo token đặt lại (hết hạn sau 15 phút, dùng một lần) và gửi email chứa liên kết `/reset-password?token=...`. Luôn trả 200 với cùng một thông báo dù email có tồn tại hay không (tránh dò email) | User |
 | POST | `/auth/reset-password` | GUEST | Đặt mật khẩu mới: nhận `{ token, newPassword }`, kiểm tra token còn hạn, băm mật khẩu mới, vô hiệu hóa token và thu hồi mọi refresh token đang có | User |
 | POST | `/auth/logout` | Đã đăng nhập | Đăng xuất (thu hồi refresh token) | - |
-| GET | `/users/me` | Đã đăng nhập | Xem hồ sơ cá nhân | User, Customer/Employee |
-| PATCH | `/users/me` | Đã đăng nhập | Sửa tên, SĐT, ảnh đại diện, địa chỉ mặc định | User, Customer |
-| PATCH | `/users/me/password` | Đã đăng nhập | Đổi mật khẩu | User |
-| DELETE | `/users/me` | CUSTOMER | Xóa/vô hiệu hóa tài khoản | User |
+| GET | `/users/me` | Đã đăng nhập | Xem hồ sơ cá nhân, trả thêm `createdAt`, `avatar`, `addresses`, `defaultAddress` | User, Customer/Employee |
+| PATCH | `/users/me` | Đã đăng nhập | Sửa hồ sơ, nhận `{ fullName, phone, avatar }` | User, Customer |
+| POST | `/users/me/avatar` | Đã đăng nhập | Tải ảnh đại diện (multipart, jpg/png/webp ≤ 2MB), trả `avatar` URL | User |
+| GET | `/users/me/addresses` | CUSTOMER | Danh sách tối đa 5 địa chỉ đã lưu | Customer |
+| POST | `/users/me/addresses` | CUSTOMER | Thêm địa chỉ `{ label, recipientName, phone, addressLine, isDefault }`; lỗi `ADDRESS_LIMIT_REACHED` nếu vượt quá 5 địa chỉ | Customer |
+| PATCH | `/users/me/addresses/:addressId` | CUSTOMER | Sửa nhãn, người nhận, điện thoại, địa chỉ và trạng thái mặc định | Customer |
+| DELETE | `/users/me/addresses/:addressId` | CUSTOMER | Xóa địa chỉ; lỗi `CANNOT_DELETE_ONLY_DEFAULT_ADDRESS` nếu chỉ còn một địa chỉ mặc định | Customer |
+| PATCH | `/users/me/addresses/:addressId/default` | CUSTOMER | Đặt địa chỉ làm mặc định | Customer |
+| PATCH | `/users/me/password` | Đã đăng nhập | Đổi mật khẩu `{ currentPassword, newPassword }`; lỗi `INVALID_CURRENT_PASSWORD` (400) | User |
+| DELETE | `/users/me` | CUSTOMER | Vô hiệu hóa tài khoản, nhận `{ password }` và thu hồi mọi refresh token; status chuyển `LOCKED` hoặc `DELETED` | User |
 | GET | `/users` | ADMIN | Danh sách người dùng (lọc theo role, status) | User |
 | PATCH | `/users/:id/status` | ADMIN | Khóa/mở khóa tài khoản | User |
 | PATCH | `/users/:id/role` | ADMIN | Phân quyền | User |
@@ -137,6 +143,11 @@ Response `200`:
 Lỗi `400` trả mã `INVALID_OR_EXPIRED_TOKEN` nếu token không hợp lệ, đã dùng hoặc hết hạn; trả mã `VALIDATION_ERROR` nếu mật khẩu mới không đạt chính sách tối thiểu 8 ký tự.
 
 > Cần bổ sung hai trường vào collection User ở mục 3.2.3 của báo cáo: `passwordResetToken` (String, lưu bản băm của token, không lưu token gốc) và `passwordResetExpires` (Date).
+
+Ghi chú cập nhật báo cáo mục 3.2.3:
+- User: thêm `avatar` (String), `createdAt` (Date).
+- Customer: thêm `addresses` (Array<{ addressId, label, recipientName, phone, addressLine, isDefault }>), giữ `address` là địa chỉ mặc định để tương thích.
+- Đề xuất cần nhóm chốt: 1 điểm cho mỗi 10.000đ của đơn đã giao thành công; hạng xét theo `lifetimePoints` với ngưỡng Thường 0, Bạc 500, Vàng 1.000, Kim cương 3.000.
 
 ## 2. Cửa hàng, danh mục, sản phẩm, tồn kho (`stores`, `categories`, `products`, `inventory`)
 
@@ -238,11 +249,19 @@ Phản hồi theo dõi:
 | GET | `/vouchers/available` | CUSTOMER | Danh sách voucher đang còn hiệu lực (`startDate` ≤ hôm nay ≤ `endDate`), dùng cho trang "Voucher của tôi" | Voucher |
 | POST / PATCH | `/vouchers`, `/vouchers/:id` | ADMIN | Tạo/sửa voucher | Voucher |
 | POST | `/vouchers/validate` | CUSTOMER | Kiểm tra mã `{ code, orderAmount }`, trả số tiền giảm | Voucher |
-| GET | `/memberships/me` | CUSTOMER | Xem điểm và hạng thành viên | Membership |
+| GET | `/memberships/me` | CUSTOMER | Trả `{ memberCode, memberLevel, pointBalance, lifetimePoints, nextLevel, pointsToNextLevel, levels: [{ name, minPoints, benefits }] }` | Membership |
+| GET | `/memberships/me/transactions` | CUSTOMER | Lịch sử điểm, phân trang. Mỗi dòng: `transactionId`, `type` (`EARN`, `REDEEM`, `ADJUST`), `points` (+/−), `balanceAfter`, `orderId`?, `note`, `createdAt` | PointTransaction |
 | GET | `/products/:id/reviews` | GUEST | Xem đánh giá của sản phẩm | Review |
-| POST | `/reviews` | CUSTOMER | Đánh giá sản phẩm của đơn đã giao `{ orderId, productId, rating, comment }` | Review |
+| GET | `/reviews/my` | CUSTOMER | Query `status=pending` (sản phẩm thuộc đơn DELIVERED chưa đánh giá) hoặc `status=done` (đã đánh giá) | Review, OrderItem |
+| POST | `/reviews` | CUSTOMER | Đánh giá sản phẩm `{ orderId, productId, rating, comment }`; chỉ cho đơn của chính khách và đơn đã giao; mỗi cặp (orderId, productId) một đánh giá; lỗi `REVIEW_ALREADY_EXISTS` (409), `ORDER_NOT_DELIVERED` (400) | Review |
 | GET | `/reviews` | STAFF, ADMIN | Quản lý đánh giá, phản ánh | Review |
 | DELETE | `/reviews/:id` | STAFF, ADMIN | Ẩn/xóa đánh giá vi phạm | Review |
+
+Ghi chú cập nhật báo cáo mục 3.2.3:
+- Membership: thêm `lifetimePoints` (Number, dùng xét hạng; `pointBalance` là điểm khả dụng).
+- Collection mới PointTransaction: `transactionId` (PK), `customerId` (tham chiếu Customer), `orderId` (tùy chọn), `type`, `points`, `balanceAfter`, `note`, `createdAt`.
+- Review: thêm unique index ghép (`orderId`, `productId`).
+- Đề xuất cần nhóm chốt: 1 điểm cho mỗi 10.000đ của đơn đã giao thành công; hạng xét theo `lifetimePoints` với ngưỡng Thường 0, Bạc 500, Vàng 1.000, Kim cương 3.000.
 
 ## 8. Báo cáo, thống kê (`reports`)
 
@@ -266,6 +285,7 @@ Frontend chỉ gọi backend. Backend (module `ai-client`) gọi ai-service, n�
 | POST | `/chat/sessions` | GUEST, CUSTOMER | Mở phiên hội thoại | ChatSession |
 | POST | `/chat/sessions/:id/messages` | GUEST, CUSTOMER | Gửi câu hỏi `{ content, storeId? }`. Backend gắn ngữ cảnh, gọi ai-service (RAG), lưu cả hai tin nhắn. Hỏi trạng thái đơn chỉ khi đã đăng nhập | ChatMessage |
 | GET | `/chat/sessions/:id/messages` | Chủ phiên, STAFF được nhận | Lịch sử tin nhắn | ChatMessage |
+| GET | `/chat/sessions/my` | CUSTOMER | Danh sách phiên chat của tôi (mới nhất trước), kèm tin nhắn cuối và tên nhân viên nếu có | ChatSession, ChatMessage |
 | POST | `/chat/sessions/:id/handover` | GUEST, CUSTOMER | Yêu cầu chuyển nhân viên CSKH (chatbot tự gọi khi không đủ thông tin) | ChatSession |
 | GET | `/chat/sessions?status=HANDED_OVER` | STAFF | Hàng đợi hội thoại cần xử lý | ChatSession |
 | POST | `/chat/sessions/:id/accept` | STAFF | Nhận hội thoại (gán `employeeId`) | ChatSession |

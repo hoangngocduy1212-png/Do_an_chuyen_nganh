@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react';
 import type { Product } from '../types/product';
+import type { CartResponse } from '../api/cart';
 
 const STORAGE_KEY = 'muadee-cart';
-export interface CartLine { product: Product; quantity: number }
+export interface CartLine { product: Product; quantity: number; itemId?: string }
 
 function readCart(): CartLine[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as CartLine[]; } catch { return []; }
@@ -29,4 +30,17 @@ export const cartStore = {
     publish();
   },
   getCount: () => cart.reduce((total, item) => total + item.quantity, 0),
+  replace: (items: CartResponse['items']) => {
+    cart = items.map(({ itemId, product, quantity }) => ({ itemId, product, quantity }));
+    publish();
+  },
+  update: (productId: string, quantity: number) => {
+    cart = cart.map((item) => item.product.productId === productId ? { ...item, quantity } : item);
+    publish();
+  },
+  remove: (productId: string) => {
+    cart = cart.filter((item) => item.product.productId !== productId);
+    publish();
+  },
+  clear: () => { cart = []; publish(); },
 };

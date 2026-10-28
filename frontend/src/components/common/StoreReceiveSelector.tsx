@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, MapPin, Store } from 'lucide-react';
 import { productsApi } from '../../api/products';
 import { storesApi } from '../../api/stores';
+import { usersApi } from '../../api/users';
 import type { StoreLocation } from '../../types/store';
 import { useAuth } from '../../store/AuthContext';
 import { useCart } from '../../store/cartStore';
@@ -18,6 +19,13 @@ export function StoreReceiveSelector() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { storesApi.list().then(setStores).catch(() => setStores([])); }, []);
+  useEffect(() => {
+    if (user?.role !== 'CUSTOMER' || selection.deliveryAddress) return;
+    usersApi.addresses().then((items) => {
+      const defaultAddress = items.find((item) => item.isDefault);
+      if (defaultAddress) storeSelectionStore.setDeliveryAddress(defaultAddress.addressLine);
+    }).catch(() => undefined);
+  }, [user?.role, selection.deliveryAddress]);
   useEffect(() => {
     const closeSelector = () => setOpen(false);
     const openSelector = () => setOpen(true);

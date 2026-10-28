@@ -30,6 +30,15 @@ function mockProductsForStore(storeId: string) {
 }
 
 export const productsApi = {
+  get: async (productId: string, storeId: string): Promise<Product | null> => {
+    if (isMockEnabled) return mockProductsForStore(storeId).find((product) => product.productId === productId) ?? null;
+    try {
+      return await http.get<{ success: true; data: Product }>(`/products/${productId}`, { params: { storeId } }).then(unwrapApiResponse);
+    } catch (error) {
+      if (typeof error === 'object' && error !== null && 'response' in error && (error as { response?: { status?: number } }).response?.status === 404) return null;
+      throw error;
+    }
+  },
   listPage: async (params: ProductListParams): Promise<ProductPage> => {
     const queryParams = { page: 1, limit: 20, ...params };
     if (isMockEnabled) {

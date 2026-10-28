@@ -24,7 +24,7 @@ function newMessage(role: ChatMessage['role'], content: string, extra: Partial<C
   return { id: crypto.randomUUID(), role, content, ...extra };
 }
 
-export function ChatWidget({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; onClose: () => void; resumeSessionId?: string }) {
   const { user } = useAuth();
   const { storeId } = useStoreSelection();
   const [messages, setMessages] = useState<ChatMessage[]>([newMessage('assistant', GREETING)]);
@@ -62,11 +62,14 @@ export function ChatWidget({ open, onClose }: { open: boolean; onClose: () => vo
     inputRef.current?.focus();
     if (session || creating) return;
     setCreating(true);
-    chatApi.createSession()
-      .then((created) => { setSession(created); if (created.messages?.length) setMessages([newMessage('assistant', GREETING), ...created.messages]); })
+    const openSession = resumeSessionId
+      ? chatApi.history(resumeSessionId).then((history) => ({ sessionId: resumeSessionId, status: history.status, agentName: history.agentName, messages: history.messages }))
+      : chatApi.createSession();
+    openSession
+      .then((created) => { setSession(created); setMessages(created.messages?.length ? created.messages : [newMessage('assistant', GREETING)]); })
       .catch(() => undefined)
       .finally(() => setCreating(false));
-  }, [open, session, creating]);
+  }, [open, session, creating, resumeSessionId]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, open, minimized, sending]);
   useEffect(() => { if (open && !minimized) inputRef.current?.focus(); }, [open, minimized]);

@@ -9,4 +9,13 @@ export const storesApi = {
       : await http.get<{ success: true; data: StoreLocation[] }>('/stores').then(unwrapApiResponse);
     return stores.filter((store) => store.status === 'ACTIVE');
   },
+  checkDelivery: async (storeId: string, address: string): Promise<{ serviceable: boolean; estimatedFee: number }> => {
+    if (isMockEnabled) {
+      const lower = address.toLocaleLowerCase('vi');
+      const serviceable = !lower.includes('long an') && !lower.includes('bình dương') && !lower.includes('ngoài vùng');
+      return { serviceable, estimatedFee: serviceable ? 20000 : 0 };
+    }
+    try { return await http.post<{ success: true; data: { serviceable: boolean; estimatedFee: number } }>(`/stores/${storeId}/serviceability`, { address }).then(unwrapApiResponse); }
+    catch { return { serviceable: true, estimatedFee: 20000 }; }
+  },
 };

@@ -4,6 +4,8 @@ export interface StoreLocation {
   _id: string;
   name: string;
   address: string;
+  phoneNumber?: string;
+  openingHours?: string;
   status: 'ACTIVE' | 'INACTIVE';
 }
 

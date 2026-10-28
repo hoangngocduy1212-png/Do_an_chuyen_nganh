@@ -1,0 +1,8 @@
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import { VoucherInput } from './VoucherInput';
+import { formatMoney } from '../../utils/money';
+
+export function CartSummary({ count, subtotal, discount, voucher, weighed, checkoutEnabled, onVoucher, onRemoveVoucher }: { count: number; subtotal: number; discount: number; voucher?: { code: string; discount: number }; weighed: boolean; checkoutEnabled: boolean; onVoucher: (code: string, discount: number) => void; onRemoveVoucher: () => void }) {
+  return <aside className="cart-summary"><h2>Tóm tắt đơn hàng</h2><div className="cart-summary-line"><span>Số sản phẩm</span><strong>{count}</strong></div><div className="cart-summary-line"><span>Tạm tính</span><strong>{formatMoney(subtotal)}</strong></div><VoucherInput amount={subtotal} voucher={voucher} onApplied={onVoucher} onRemove={onRemoveVoucher} />{discount > 0 && <div className="cart-summary-line discount"><span>Giảm giá</span><strong>-{formatMoney(discount)}</strong></div>}<div className="cart-summary-line delivery-fee"><span>Phí vận chuyển</span><small>Phí vận chuyển sẽ được tính ở bước thanh toán</small></div>{weighed && <p className="cart-weight-note">Tổng tiền tạm tính, sẽ được tính lại theo khối lượng thực tế</p>}<div className="cart-summary-total"><span>Tổng cộng</span><strong>{formatMoney(Math.max(0, subtotal - discount))}</strong></div><Link className={`cart-checkout-button ${!checkoutEnabled ? 'disabled' : ''}`} aria-disabled={!checkoutEnabled} onClick={(event) => { if (!checkoutEnabled) event.preventDefault(); }} to="/checkout">Tiến hành thanh toán <ArrowRight size={17} /></Link></aside>;
+}
