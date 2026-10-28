@@ -20,6 +20,14 @@ export const environmentValidationSchema = Joi.object({
   AI_SERVICE_URL: Joi.string().uri().default('http://localhost:8000'),
   AI_SERVICE_TIMEOUT_MS: Joi.number().integer().positive().default(8000),
   INTERNAL_API_KEY: Joi.string().allow('').default(''),
+  FREE_SHIP_THRESHOLD: Joi.number().integer().min(0).default(200000),
+  DEFAULT_SHIPPING_FEE: Joi.number().integer().min(0).default(20000),
+  PAYMENT_WEBHOOK_SECRET: Joi.string().min(32).allow('').default(''),
+  PAYMENT_BANK_ID: Joi.string().allow('').default(''),
+  PAYMENT_BANK_NAME: Joi.string().allow('').default(''),
+  PAYMENT_ACCOUNT_NUMBER: Joi.string().allow('').default(''),
+  PAYMENT_ACCOUNT_NAME: Joi.string().allow('').default(''),
+  PAYMENT_CARD_CHECKOUT_URL: Joi.string().uri({ scheme: ['http', 'https'] }).allow('').default(''),
 });
 
 function durationInSeconds(duration: string): number {
@@ -53,5 +61,17 @@ export default () => ({
     url: process.env.AI_SERVICE_URL ?? 'http://localhost:8000',
     timeoutMs: Number(process.env.AI_SERVICE_TIMEOUT_MS ?? 8000),
     internalKey: process.env.INTERNAL_API_KEY ?? '',
+  },
+  business: {
+    freeShipThreshold: Number(process.env.FREE_SHIP_THRESHOLD ?? 200000),
+    defaultShippingFee: Number(process.env.DEFAULT_SHIPPING_FEE ?? 20000),
+  },
+  payment: {
+    webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET ?? '',
+    bankId: process.env.PAYMENT_BANK_ID ?? '',
+    bankName: process.env.PAYMENT_BANK_NAME ?? '',
+    accountNumber: process.env.PAYMENT_ACCOUNT_NUMBER ?? '',
+    accountName: process.env.PAYMENT_ACCOUNT_NAME ?? '',
+    cardCheckoutUrl: process.env.PAYMENT_CARD_CHECKOUT_URL ?? '',
   },
 });

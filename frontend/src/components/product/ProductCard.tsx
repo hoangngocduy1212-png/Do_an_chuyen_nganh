@@ -7,9 +7,11 @@ import type { Product } from '../../types/product';
 import { useAuth } from '../../store/AuthContext';
 import { cartStore } from '../../store/cartStore';
 import { ProductImage } from './ProductImage';
+import { useStoreSelection } from '../../store/storeSelectionStore';
 
 export function ProductCard({ product, onLoginRequired, rank, showDeal = false }: { product: Product; onLoginRequired: (product: Product) => void; rank?: number; showDeal?: boolean }) {
   const { user } = useAuth();
+  const { storeId } = useStoreSelection();
   const [quantity, setQuantity] = useState(product.unit === 'kg' ? 0.5 : 1);
   const [adding, setAdding] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -39,7 +41,7 @@ export function ProductCard({ product, onLoginRequired, rank, showDeal = false }
     if (!user) { onLoginRequired(product); return; }
     setAdding(true);
     try {
-      await cartApi.add(product.productId, quantity);
+      await cartApi.add(product.productId, quantity, storeId);
       cartStore.add(product, quantity);
       activitiesApi.record('ADD_TO_CART', product.productId).catch(() => undefined);
       window.dispatchEvent(new Event('muadee:cart-added'));

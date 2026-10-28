@@ -160,7 +160,7 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
       return;
     }
     try {
-      await cartApi.add(product.productId, 1);
+      await cartApi.add(product.productId, 1, storeId);
       cartStore.add(product);
       window.dispatchEvent(new Event('muadee:cart-added'));
       window.dispatchEvent(new CustomEvent('muadee:toast', { detail: 'Đã thêm vào giỏ hàng' }));

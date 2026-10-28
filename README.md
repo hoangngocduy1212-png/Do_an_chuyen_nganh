@@ -114,6 +114,24 @@ Lưu ý về vận chuyển: hệ thống chỉ có 3 vai trò đăng nhập là
 
 Tài liệu API chi tiết từng module: `docs/api/API.md`.
 
+### MongoDB indexes và tìm kiếm tri thức
+
+Schema khai báo các index thông thường; tạo/cập nhật chúng thủ công bằng `cd backend` rồi chạy `npm run create-indexes` với `MONGODB_URI` đã được cấu hình. Production tắt `autoIndex`, vì vậy chạy lệnh này sau khi triển khai schema.
+
+`KnowledgeDocument.embedding` dùng Atlas Vector Search khi triển khai MongoDB Atlas: tạo Search Index tên `knowledge_embedding_vector` trên collection `knowledgedocuments`, field `embedding`, kiểu `vector`, cấu hình `numDimensions` khớp model embedding và `similarity: cosine`. Local MongoDB không tạo vector index; `ai-service` cần tính cosine similarity ở tầng ứng dụng.
+
+Khởi tạo dữ liệu phát triển (tạo `.env` từ `.env.example` trước, không điền thông tin MongoDB thật vào file được commit):
+
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d mongo
+Set-Location backend
+npm run create-indexes
+npm run seed -- --reset
+```
+
+Seed có thể chạy lặp lại; `--reset` chỉ xóa và tạo lại các collection do seed quản lý. Tài khoản mẫu dùng mật khẩu phát triển `Muadee123`; mật khẩu được lưu dưới dạng bcrypt hash.
+
 Phần AI nặng nhất, nên chia nhỏ:
 - Chatbot (LLM + RAG): TV5.
 - Gợi ý và dự báo: TV5 làm lõi, TV4 hỗ trợ dự báo/báo cáo khi xong phần của mình.

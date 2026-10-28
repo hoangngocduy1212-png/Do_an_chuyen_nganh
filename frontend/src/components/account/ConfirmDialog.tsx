@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, LoaderCircle, X } from 'lucide-react';
 
 export function ConfirmDialog({ open, title, description, confirmLabel = 'Xác nhận', onConfirm, onCancel, danger = false, children, confirmDisabled = false, busy = false }: { open: boolean; title: string; description: string; confirmLabel?: string; onConfirm: () => void | Promise<void>; onCancel: () => void; danger?: boolean; children?: ReactNode; confirmDisabled?: boolean; busy?: boolean }) {
   const dialogRef = useRef<HTMLElement>(null);
@@ -24,5 +24,5 @@ export function ConfirmDialog({ open, title, description, confirmLabel = 'Xác n
     return () => { document.removeEventListener('keydown', trapFocus); previousFocusRef.current?.focus(); };
   }, [open]);
   if (!open) return null;
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}><section ref={dialogRef} className="account-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title" tabIndex={-1}><button className="icon-button modal-close" type="button" aria-label="Đóng" onClick={onCancel}><X size={18} /></button><span className={danger ? 'confirm-icon danger' : 'confirm-icon'}><AlertTriangle size={23} /></span><h2 id="confirm-dialog-title">{title}</h2><p>{description}</p>{children}<div><button className="secondary-button" type="button" onClick={onCancel}>Hủy</button><button className={danger ? 'account-danger-button' : 'primary-button'} type="button" disabled={confirmDisabled || busy} onClick={() => void onConfirm()}>{busy ? 'Đang xử lý...' : confirmLabel}</button></div></section></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}><section ref={dialogRef} className="account-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title" tabIndex={-1}><button className="icon-button modal-close" type="button" aria-label="Đóng" onClick={onCancel}><X size={18} /></button><span className={danger ? 'confirm-icon danger' : 'confirm-icon'}><AlertTriangle size={23} /></span><h2 id="confirm-dialog-title">{title}</h2><p>{description}</p>{children}<div><button className="secondary-button" type="button" onClick={onCancel}>Hủy</button><button className={danger ? 'account-danger-button' : 'primary-button'} type="button" disabled={confirmDisabled || busy} aria-busy={busy} onClick={() => void onConfirm()}>{busy && <LoaderCircle className="button-spinner" size={15} aria-hidden="true" />}{busy ? 'Đang xử lý...' : confirmLabel}</button></div></section></div>;
 }

@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-indexer"
+  },
+  "include": [
+    "database/scripts/create-indexes.ts",
+    "database/seed/seed.ts",
+    "src/common/database/**/*.ts",
+    "src/common/constants/roles.enum.ts",
+    "src/modules/**/schemas/*.schema.ts"
+  ],
+  "exclude": ["node_modules", "dist", "dist-indexer", "**/*spec.ts"]
+}

@@ -1,9 +1,15 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
 from app.main import app
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def clear_internal_key(monkeypatch):
+    monkeypatch.setattr(settings, "internal_api_key", "")
 
 
 def test_health():

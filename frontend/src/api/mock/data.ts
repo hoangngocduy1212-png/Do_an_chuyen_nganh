@@ -16,6 +16,7 @@ export const mockStores: StoreLocation[] = [
   { _id: 'store-nguyen-trai', name: 'Chi nhánh Nguyễn Trãi, Q.5', address: '237 Nguyễn Trãi, Phường 7, Quận 5, TP. Hồ Chí Minh', status: 'ACTIVE' },
   { _id: 'store-vo-van-tan', name: 'Chi nhánh Võ Văn Tần, Q.3', address: '118 Võ Văn Tần, Phường 5, Quận 3, TP. Hồ Chí Minh', status: 'ACTIVE' },
   { _id: 'store-phu-nhuan', name: 'Chi nhánh Phan Xích Long, Phú Nhuận', address: '42 Phan Xích Long, Phường 3, Phú Nhuận, TP. Hồ Chí Minh', status: 'ACTIVE' },
+  { _id: 'store-temporarily-closed', name: 'Chi nhánh tạm ngưng hoạt động', address: 'Đang tạm ngưng phục vụ', status: 'INACTIVE' },
 ];
 
 export const mockProducts: Product[] = [

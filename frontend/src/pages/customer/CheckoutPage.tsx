@@ -7,6 +7,7 @@ import { membershipsApi } from '../../api/memberships';
 import { ordersApi } from '../../api/orders';
 import { paymentsApi } from '../../api/payments';
 import { storesApi } from '../../api/stores';
+import { vouchersApi } from '../../api/vouchers';
 import { usersApi, type CustomerAddress } from '../../api/users';
 import { AddressForm } from '../../components/account/AddressForm';
 import { Breadcrumb } from '../../components/common/Breadcrumb';
@@ -70,7 +71,7 @@ export default function CheckoutPage() {
     setLoading(true);
     Promise.all([
       refreshCart(), usersApi.addresses().catch(() => []), storesApi.list().catch(() => []), membershipsApi.me().catch(() => undefined),
-      import('../../api/vouchers').then(({ vouchersApi }) => vouchersApi.available().catch(() => [])),
+      vouchersApi.available().catch(() => []),
     ]).then(([cartData, addressData, storeData, membershipData, voucherData]) => {
       if (!active) return;
       setCart(cartData); setAddresses(addressData); setStores(storeData); setMembership(membershipData); setAvailableVouchers(voucherData);
@@ -118,26 +119,21 @@ export default function CheckoutPage() {
   async function applyVoucher(code: string, discount: number) { checkoutStore.applyVoucher(code, discount); setError(''); setErrorCode(''); }
   async function selectVoucher(code: string) {
     try {
-      const { vouchersApi } = await import('../../api/vouchers');
       const result = await vouchersApi.validate(code, amount);
       checkoutStore.applyVoucher(code, result.discountAmount); setError(''); setErrorCode('');
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể áp dụng voucher.'); }
   }
 
   async function inspectCart(): Promise<CartChange[]> {
-    const latest = await cartApi.get(selection.storeId);
-    const products = await import('../../api/products').then(({ productsApi }) => productsApi.list({ storeId: selection.storeId }).catch(() => latest.items.map((item) => item.product)));
-    const changes: CartChange[] = [];
-    for (const item of latest.items) {
-      const fresh = products.find((product) => product.productId === item.product.productId);
-      const stock = fresh?.stock ?? 0;
-      const nextQuantity = Math.min(item.quantity, stock);
-      const priceChanged = fresh && (fresh.salePrice ?? fresh.price) !== (item.product.salePrice ?? item.product.price);
-      if (!fresh || stock <= 0) changes.push({ itemId: item.itemId, productId: item.product.productId, name: item.product.productName, message: 'Sản phẩm hiện đã hết hàng và sẽ bị loại khỏi giỏ.', quantity: 0, remove: true });
-      else if (nextQuantity !== item.quantity) changes.push({ itemId: item.itemId, productId: item.product.productId, name: fresh.productName, message: `Chỉ còn ${stock}; số lượng sẽ được điều chỉnh từ ${item.quantity} xuống ${nextQuantity}.`, quantity: nextQuantity, remove: false });
-      else if (priceChanged) changes.push({ itemId: item.itemId, productId: item.product.productId, name: fresh.productName, message: `Giá đã thay đổi thành ${formatMoney(fresh.salePrice ?? fresh.price)}.`, quantity: item.quantity, remove: false });
-    }
-    return changes;
+    const validation = await cartApi.validate(selection.storeId);
+    return validation.changes.map((change) => ({
+      itemId: change.itemId,
+      productId: change.productId,
+      name: change.productName,
+      message: change.message,
+      quantity: change.suggestedQuantity,
+      remove: change.type === 'UNAVAILABLE',
+    }));
   }
 
   async function placeOrder() {
@@ -188,9 +184,13 @@ export default function CheckoutPage() {
       }
       navigate(`/payment/${order.orderId}`);
     } catch (reason) {
-      const code = (reason as Error & { code?: string }).code;
+      const orderError = reason instanceof Error ? reason as Error & { code?: string; details?: Array<{ productName: string; requestedQuantity: number; availableStock: number }> } : undefined;
+      const code = orderError?.code;
       setErrorCode(code ?? 'NETWORK');
-      if (code === 'OUT_OF_STOCK') setError('Một số sản phẩm vừa hết hàng. Vui lòng kiểm tra lại giỏ hàng.');
+      if (code === 'OUT_OF_STOCK') {
+        const missing = orderError?.details?.map((item) => `${item.productName} (còn ${item.availableStock}/${item.requestedQuantity})`).join(', ');
+        setError(missing ? `Sản phẩm không đủ hàng: ${missing}. Vui lòng kiểm tra lại giỏ hàng.` : 'Một số sản phẩm vừa hết hàng. Vui lòng kiểm tra lại giỏ hàng.');
+      }
       else if (code === 'VOUCHER_INVALID') setError('Voucher không còn hợp lệ. Hãy chọn mã khác.');
       else if (reason instanceof Error && reason.message) setError(reason.message);
       else setError('Không thể kết nối, vui lòng thử lại');

@@ -1,7 +1,7 @@
 import type { OrderStatus } from '../types/order';
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
-  PENDING: 'Chờ xác nhận', PREPARING: 'Đang chuẩn bị', SHIPPING: 'Đang giao hàng', READY_FOR_PICKUP: 'Chờ nhận tại cửa hàng', DELIVERED: 'Đã giao hàng', CANCELLED: 'Đã hủy', RETURNING: 'Đang hoàn trả', RETURNED: 'Đã hoàn trả',
+  PENDING: 'Chờ xử lý', PREPARING: 'Đang chuẩn bị', SHIPPING: 'Đang giao', READY_FOR_PICKUP: 'Sẵn sàng nhận tại cửa hàng', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy', RETURNING: 'Đang trả hàng', RETURNED: 'Đã trả hàng',
 };
 
 export const orderStatusTone: Record<OrderStatus, string> = {

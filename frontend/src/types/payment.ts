@@ -4,6 +4,7 @@ export interface PaymentRequestResult {
   paymentId: string;
   paymentStatus: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
   qrCodeUrl?: string;
+  qrImageUrl?: string;
   paymentUrl?: string;
   paymentMethod: PaymentMethod;
   bankName?: string;
@@ -12,4 +13,7 @@ export interface PaymentRequestResult {
   amount?: number;
   transferContent?: string;
   expiresAt?: string;
+  transactionId?: string;
+  createdAt?: string;
+  paidAt?: string;
 }

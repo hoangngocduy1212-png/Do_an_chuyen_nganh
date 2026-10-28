@@ -1,5 +1,7 @@
 node_modules/
 dist/
+backend/dist-indexer/
+backend/uploads/
 build/
 .env
 *.log

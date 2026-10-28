@@ -74,7 +74,7 @@ export default function HomePage() {
     if (!user || !pendingProductId || loadingProducts) return;
     const product = freshProducts.find((item) => item.productId === pendingProductId);
     if (product) {
-      cartApi.add(product.productId, 1).then(() => {
+      cartApi.add(product.productId, 1, storeId).then(() => {
         cartStore.add(product);
         activitiesApi.record('ADD_TO_CART', product.productId).catch(() => undefined);
         window.dispatchEvent(new Event('muadee:cart-added'));

@@ -20,6 +20,10 @@ export default function PaymentResultPage() {
       try {
         const result = paymentId ? await paymentsApi.get(paymentId) : await paymentsApi.forOrder(orderId);
         if (active) {
+          if (!result) {
+            setFailed(true);
+            return;
+          }
           setPayment(result);
           if (result.paymentStatus === 'SUCCESS') checkoutStore.setPayment(orderId, result);
           setFailed(result.paymentStatus === 'FAILED' || result.paymentStatus === 'REFUNDED');

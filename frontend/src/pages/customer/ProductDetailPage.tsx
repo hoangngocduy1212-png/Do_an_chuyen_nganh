@@ -77,7 +77,7 @@ export default function ProductDetailPage() {
     }
     setAdding(true);
     try {
-      await cartApi.add(product.productId, quantity);
+      await cartApi.add(product.productId, quantity, storeId);
       cartStore.add(product, quantity);
       activitiesApi.record('ADD_TO_CART', product.productId).catch(() => undefined);
       window.dispatchEvent(new Event('muadee:cart-added'));
