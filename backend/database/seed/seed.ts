@@ -169,11 +169,14 @@ function makeCatalog(): { categories: SeedRecord[]; products: SeedProduct[]; pro
       'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=85',
       'https://images.unsplash.com/photo-1547514701-42782101795e?auto=format&fit=crop&w=800&q=85',
     ];
+  const productImages: Record<string, string> = JSON.parse(
+    readFileSync(resolve(process.cwd(), 'database/seed/product-images.json'), 'utf8'),
+  );
   const products: SeedProduct[] = [];
   const productRecords: SeedRecord[] = [];
 
   namesByCategory.forEach((names, categoryIndex) => {
-    names.forEach((productName, itemIndex) => {
+    names.slice(0, 5).forEach((productName, itemIndex) => {
       const index = products.length + 1;
       const weighted = categoryIndex === 0 || categoryIndex === 1 || categoryIndex === 2
         ? index % 4 === 0
@@ -185,7 +188,7 @@ function makeCatalog(): { categories: SeedRecord[]; products: SeedProduct[]; pro
       const productId = idFor('product', index);
       const saleStartDate = sale ? daysAgo(saleIsExpired ? 20 : 2) : undefined;
       const saleEndDate = sale ? daysAgo(saleIsExpired ? 3 : -5) : undefined;
-      const image = categoryImages[categoryIndex];
+      const image = productImages[productName] ?? categoryImages[categoryIndex];
       products.push({ productId, productName, categoryId: idFor('category', categoryIndex + 1), price, unit, weighted });
       productRecords.push({
         productId,

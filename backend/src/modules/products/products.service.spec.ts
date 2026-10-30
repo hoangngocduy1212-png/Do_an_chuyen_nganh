@@ -7,6 +7,7 @@ import { Order, OrderSchema } from '../orders/schemas/order.schema';
 import { ProductQueryDto } from './dto/product.dto';
 import { Product, ProductSchema } from './schemas/product.schema';
 import { ProductsService } from './products.service';
+import { Role } from '../../common/constants/roles';
 
 describe('ProductsService', () => {
   let server: MongoMemoryServer;
@@ -105,6 +106,37 @@ describe('ProductsService', () => {
       reviewCount: 0,
     });
     expect(result.data[0]).not.toHaveProperty('searchText');
+  });
+
+  it('cho phép ADMIN xem sản phẩm INACTIVE để có thể sửa hoặc kích hoạt lại', async () => {
+    await models.categories.create({ categoryId: 'category-test', categoryName: 'Rau củ' });
+    await models.products.create([
+      {
+        productId: 'active-product',
+        productName: 'Cà chua',
+        description: 'Đang bán',
+        categoryId: 'category-test',
+        price: 30000,
+        unit: 'kg',
+        status: 'ACTIVE',
+      },
+      {
+        productId: 'inactive-product',
+        productName: 'Cà rốt',
+        description: 'Ngừng bán',
+        categoryId: 'category-test',
+        price: 25000,
+        unit: 'kg',
+        status: 'INACTIVE',
+      },
+    ]);
+
+    const query = Object.assign(new ProductQueryDto(), { page: 1, limit: 20 });
+    const publicResult = await service.findAll(query);
+    const adminResult = await service.findAll(query, { userId: 'admin-test', role: Role.ADMIN });
+
+    expect(publicResult.data.map((item) => item.productId).sort()).toEqual(['active-product']);
+    expect(adminResult.data.map((item) => item.productId).sort()).toEqual(['active-product', 'inactive-product']);
   });
 
   it('xếp bestseller theo số lượng DELIVERED trong 30 ngày gần nhất của cửa hàng', async () => {

@@ -1,0 +1,80 @@
+.admin-categories { max-width: 1120px; margin: 0 auto; }
+.admin-categories .admin-page-heading { margin-bottom: 25px; }
+.admin-primary-button,
+.category-secondary-button {
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #176f56;
+  border-radius: 4px;
+  background: #176f56;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.admin-primary-button:hover { background: #105941; }
+.admin-primary-button:disabled,
+.category-secondary-button:disabled { cursor: progress; opacity: .6; }
+.category-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 13px; }
+.category-search { width: min(390px, 100%); height: 39px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; color: #86948d; }
+.category-search:focus-within { border-color: #7da995; box-shadow: 0 0 0 3px rgba(23,111,86,.07); }
+.category-search input { width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: #19352c; font: inherit; font-size: 11px; }
+.category-search input::placeholder { color: #98a39e; }
+.category-count { color: #71817a; font-size: 10px; white-space: nowrap; }
+.category-table-wrap { overflow-x: auto; border: 1px solid #dce5df; background: #fff; }
+.category-table { width: 100%; border-collapse: collapse; text-align: left; }
+.category-table th { height: 42px; padding: 0 16px; border-bottom: 1px solid #e6ece8; background: #f9fbf9; color: #78877f; font-size: 9px; font-weight: 800; letter-spacing: .4px; }
+.category-table td { min-height: 58px; padding: 12px 16px; border-bottom: 1px solid #edf1ee; font-size: 11px; }
+.category-table tbody tr:last-child td { border-bottom: 0; }
+.category-table tbody tr:hover:not(:has(.category-state)) { background: #fbfdfb; }
+.category-action-heading { width: 118px; text-align: right; }
+.category-name-cell { display: flex; align-items: center; gap: 12px; }
+.category-name-cell strong { color: #263d33; font-size: 11px; }
+.category-index { color: #a4afa9; font-size: 9px; font-variant-numeric: tabular-nums; }
+.category-description { color: #71817a; }
+.category-row-actions { display: flex; justify-content: flex-end; gap: 5px; }
+.category-row-actions button,
+.category-modal-close { width: 31px; height: 31px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #74837b; }
+.category-row-actions button:hover,
+.category-modal-close:hover { border-color: #dce5df; background: #f4f8f5; color: #176f56; }
+.category-row-actions .category-delete:hover { border-color: #f0d7d2; background: #fff5f2; color: #b94a3f; }
+.category-state { height: 180px; text-align: center !important; color: #78877f; }
+.category-state > strong,
+.category-state > span:not(.admin-loading-mark):not(.category-empty-icon) { display: block; margin-top: 7px; font-size: 10px; font-weight: 500; }
+.category-state > strong { color: #43574d; font-size: 11px; font-weight: 700; }
+.category-state-error > span { max-width: 500px; margin-inline: auto; }
+.category-state button { margin-top: 12px; padding: 6px 10px; border: 1px solid #b9d1c5; border-radius: 4px; background: #fff; color: #176f56; font: inherit; font-size: 10px; font-weight: 700; }
+.category-empty-icon { width: 37px; height: 37px; display: grid; place-items: center; margin: 0 auto 10px; border-radius: 50%; background: #eaf4ef; color: #4a8b6f; }
+.admin-loading-mark { width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 7px; border: 2px solid #d6e5dc; border-top-color: #176f56; border-radius: 50%; animation: admin-spin .7s linear infinite; }
+@keyframes admin-spin { to { transform: rotate(360deg); } }
+.admin-inline-error { margin: 0 0 12px; padding: 10px 12px; border: 1px solid #f0d2cb; border-radius: 4px; background: #fff7f5; color: #a53d31; font-size: 10px; line-height: 1.5; }
+.category-modal-backdrop { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(15,35,27,.42); }
+.category-modal { width: min(480px, 100%); overflow: hidden; border: 1px solid #dfe8e2; border-radius: 6px; background: #fff; box-shadow: 0 22px 65px rgba(15,35,27,.2); animation: category-modal-in .16s ease-out; }
+@keyframes category-modal-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+.category-modal > header { display: flex; align-items: center; justify-content: space-between; padding: 19px 21px; border-bottom: 1px solid #edf1ee; }
+.category-modal h2 { margin: 5px 0 0; color: #19352c; font-size: 17px; }
+.category-modal form { display: grid; gap: 17px; padding: 21px; }
+.category-modal label { display: grid; gap: 7px; color: #3c5147; font-size: 10px; font-weight: 700; }
+.category-modal label > span { color: #bd4d3e; }
+.category-modal label > small { display: inline; margin-top: -5px; color: #8a9790; font-size: 9px; font-weight: 500; }
+.category-modal input,
+.category-modal textarea { width: 100%; padding: 10px 11px; border: 1px solid #dce5df; border-radius: 4px; outline: 0; background: #fff; color: #19352c; font: inherit; font-size: 11px; resize: vertical; }
+.category-modal input:focus,
+.category-modal textarea:focus { border-color: #7da995; box-shadow: 0 0 0 3px rgba(23,111,86,.07); }
+.category-modal form > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px; }
+.category-secondary-button { border-color: #dce5df; background: #fff; color: #52635a; }
+.category-secondary-button:hover { background: #f5f8f6; }
+.category-modal .admin-inline-error { margin: -4px 0 0; }
+@media (max-width: 680px) {
+  .admin-categories .admin-page-heading { align-items: flex-start; }
+  .admin-categories .admin-page-heading > button { min-height: 36px; padding-inline: 10px; font-size: 10px; }
+  .category-toolbar { align-items: flex-start; }
+  .category-search { flex: 1; }
+  .category-table { min-width: 560px; }
+  .category-count { padding-top: 12px; }
+}

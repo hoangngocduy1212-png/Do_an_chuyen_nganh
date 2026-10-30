@@ -1,0 +1,66 @@
+.admin-stores { max-width: 1280px; margin: 0 auto; }
+.admin-stores .admin-page-heading { margin-bottom: 25px; }
+.stores-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+.stores-search { width: min(390px, 100%); height: 39px; display: flex; align-items: center; gap: 9px; padding: 0 11px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; color: #86948d; }
+.stores-search:focus-within { border-color: #7da995; box-shadow: 0 0 0 3px rgba(23,111,86,.07); }
+.stores-search input { width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: #19352c; font: inherit; font-size: 11px; }
+.stores-search input::placeholder { color: #98a39e; }
+.stores-status-filter { display: flex; align-items: center; gap: 8px; color: #78877f; font-size: 9px; white-space: nowrap; }
+.stores-status-filter select { min-height: 36px; padding: 0 28px 0 9px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; color: #3c5147; font: inherit; font-size: 10px; }
+.stores-count { margin-left: auto; color: #71817a; font-size: 10px; white-space: nowrap; }
+.stores-table-wrap { overflow-x: auto; border: 1px solid #dce5df; background: #fff; }
+.stores-table { width: 100%; border-collapse: collapse; text-align: left; }
+.stores-table th { height: 42px; padding: 0 14px; border-bottom: 1px solid #e6ece8; background: #f9fbf9; color: #78877f; font-size: 9px; font-weight: 800; letter-spacing: .3px; white-space: nowrap; }
+.stores-table td { padding: 12px 14px; border-bottom: 1px solid #edf1ee; color: #52635a; font-size: 10px; }
+.stores-table tbody tr:last-child td { border-bottom: 0; }
+.stores-table tbody tr:hover:not(:has(.stores-state)) { background: #fbfdfb; }
+.stores-name-cell { min-width: 165px; display: flex; align-items: center; gap: 10px; }
+.stores-name-cell strong { color: #263d33; font-size: 10px; }
+.stores-marker { width: 29px; height: 29px; flex: 0 0 29px; display: grid; place-items: center; border-radius: 5px; background: #eaf4ef; color: #287c5b; }
+.stores-address { min-width: 190px; max-width: 350px; line-height: 1.55; }
+.stores-phone { min-width: 115px; white-space: nowrap; }
+.stores-status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 3px; font-size: 9px; font-weight: 700; white-space: nowrap; }
+.stores-status-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.stores-status-badge.active { background: #eaf5ee; color: #28734e; }
+.stores-status-badge.inactive { background: #f2f1ed; color: #79756a; }
+.stores-actions-heading { width: 74px; text-align: right; }
+.stores-row-actions { display: flex; justify-content: flex-end; }
+.stores-row-actions button,
+.stores-modal-close { width: 31px; height: 31px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #74837b; }
+.stores-row-actions button:hover,
+.stores-modal-close:hover { border-color: #dce5df; background: #f4f8f5; color: #176f56; }
+.stores-state { height: 180px; text-align: center !important; color: #78877f !important; }
+.stores-state > strong,
+.stores-state > span:not(.admin-loading-mark):not(.stores-empty-icon) { display: block; margin-top: 7px; color: #71817a; font-size: 10px; font-weight: 500; }
+.stores-state > strong { color: #43574d; font-size: 11px; font-weight: 700; }
+.stores-state button { margin-top: 12px; padding: 6px 10px; border: 1px solid #b9d1c5; border-radius: 4px; background: #fff; color: #176f56; font: inherit; font-size: 10px; font-weight: 700; }
+.stores-empty-icon { width: 37px; height: 37px; display: grid; place-items: center; margin: 0 auto 10px; border-radius: 50%; background: #eaf4ef; color: #4a8b6f; }
+.stores-state-error > span { max-width: 500px; margin-inline: auto; }
+.stores-modal-backdrop { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(15,35,27,.42); }
+.stores-modal { width: min(500px, 100%); max-height: min(92vh, 760px); overflow: auto; border: 1px solid #dfe8e2; border-radius: 6px; background: #fff; box-shadow: 0 22px 65px rgba(15,35,27,.2); animation: stores-modal-in .16s ease-out; }
+@keyframes stores-modal-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+.stores-modal > header { display: flex; align-items: center; justify-content: space-between; padding: 19px 21px; border-bottom: 1px solid #edf1ee; }
+.stores-modal h2 { margin: 5px 0 0; color: #19352c; font-size: 17px; }
+.stores-modal form { display: grid; gap: 15px; padding: 21px; }
+.stores-modal label { display: grid; gap: 7px; color: #3c5147; font-size: 10px; font-weight: 700; }
+.stores-modal label > span { color: #bd4d3e; }
+.stores-modal input,
+.stores-modal textarea,
+.stores-modal select { width: 100%; min-height: 38px; padding: 9px 10px; border: 1px solid #dce5df; border-radius: 4px; outline: 0; background: #fff; color: #19352c; font: inherit; font-size: 11px; }
+.stores-modal textarea { resize: vertical; }
+.stores-modal input:focus,
+.stores-modal textarea:focus,
+.stores-modal select:focus { border-color: #7da995; box-shadow: 0 0 0 3px rgba(23,111,86,.07); }
+.stores-modal form > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px; }
+.stores-secondary-button { min-height: 39px; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; color: #52635a; font: inherit; font-size: 11px; font-weight: 700; }
+.stores-secondary-button:hover { background: #f5f8f6; }
+.stores-secondary-button:disabled { cursor: progress; opacity: .6; }
+.stores-modal .admin-inline-error { margin: -2px 0 0; }
+@media (max-width: 680px) {
+  .admin-stores .admin-page-heading { align-items: flex-start; }
+  .admin-stores .admin-page-heading > button { min-height: 36px; padding-inline: 10px; font-size: 10px; }
+  .stores-toolbar { flex-wrap: wrap; }
+  .stores-search { flex: 1 1 210px; }
+  .stores-count { padding-top: 8px; }
+  .stores-table { min-width: 760px; }
+}

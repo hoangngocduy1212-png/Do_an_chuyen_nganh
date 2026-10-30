@@ -42,7 +42,7 @@ export function LoginForm() {
         fullName: result.user.fullName,
         email: result.user.email ?? email.trim(),
         role: result.user.role,
-      });
+      }, result.refreshToken);
       const returnTo = new URLSearchParams(location.search).get('returnTo');
       const destination = result.user.role === 'ADMIN'
         ? '/admin/dashboard'

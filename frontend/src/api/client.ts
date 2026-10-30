@@ -1,8 +1,9 @@
 import axios from 'axios';
-import type { AxiosResponse } from 'axios';
+import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import type { ApiSuccess } from '../types';
 
 export const TOKEN_KEY = 'accessToken';
+export const REFRESH_TOKEN_KEY = 'refreshToken';
 
 // Mot axios dung chung: tu gan JWT, tu bong "data" ra khoi { success, data }
 export const http = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? '/api/v1' });
@@ -21,11 +22,40 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401) localStorage.removeItem(TOKEN_KEY);
+  async (err) => {
+    const config = err.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
+    if (err.response?.status !== 401 || !config) return Promise.reject(err);
+    const isAuthCall = /\/auth\/(login|register|refresh)/.test(config.url ?? '');
+    if (!isAuthCall && !config._retried && localStorage.getItem(REFRESH_TOKEN_KEY)) {
+      config._retried = true;
+      const token = await refreshAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        return http(config);
+      }
+    }
+    localStorage.removeItem(TOKEN_KEY);
     return Promise.reject(err);
   },
 );
+
+let refreshing: Promise<string | null> | null = null;
+
+function refreshAccessToken(): Promise<string | null> {
+  refreshing ??= axios
+    .post<{ data: { accessToken: string; refreshToken: string } }>(`${http.defaults.baseURL}/auth/refresh`, { refreshToken: localStorage.getItem(REFRESH_TOKEN_KEY) })
+    .then(({ data }) => {
+      localStorage.setItem(TOKEN_KEY, data.data.accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.data.refreshToken);
+      return data.data.accessToken;
+    })
+    .catch(() => {
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      return null;
+    })
+    .finally(() => { refreshing = null; });
+  return refreshing;
+}
 
 /** Lay thong bao loi than thien tu response cua backend. */
 export function errorMessage(err: unknown): string {

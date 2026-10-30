@@ -32,6 +32,7 @@ export class Order {
   @Prop({ type: String, required: true }) recipientName: string;
   @Prop({ type: String, required: true }) recipientPhone: string;
   @Prop({ type: Date }) pickupTime?: Date;
+  @Prop({ type: String }) pickupSlot?: string;
   @Prop({ type: String }) note?: string;
   @Prop({ type: Number, required: true, min: 0 }) subtotal: number;
   @Prop({ type: Number, default: 0, min: 0 }) discountAmount: number;
@@ -84,7 +85,19 @@ function appendStatusHistory(this: Query<unknown, Order>): void {
 OrderSchema.pre('findOneAndUpdate', appendStatusHistory);
 OrderSchema.pre('updateOne', appendStatusHistory);
 OrderSchema.pre('updateMany', appendStatusHistory);
-applyIdPlugin(OrderSchema, 'orderId');
+applyIdPlugin(OrderSchema, 'orderId', (value) => {
+  if (value.pickupSlot) value.pickupTime = value.pickupSlot;
+});
+
+// Khung giờ dạng "09:00–11:00" -> lần gần nhất còn chưa bắt đầu (giờ Việt Nam).
+export function parsePickupTime(value: string): { pickupTime: Date; pickupSlot?: string } {
+  const slot = value.match(/^(\d{2}):(\d{2})\s*[–-]\s*\d{2}:\d{2}$/);
+  if (!slot) return { pickupTime: new Date(value) };
+  const offsetMs = 7 * 60 * 60_000;
+  const local = new Date(Date.now() + offsetMs);
+  const start = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), Number(slot[1]), Number(slot[2])) - offsetMs;
+  return { pickupTime: new Date(start > Date.now() ? start : start + 24 * 60 * 60_000), pickupSlot: value.replace(/\s+/g, '') };
+}
 
 export async function createOrderWithCode(
   orderModel: Model<Order>,

@@ -35,7 +35,7 @@ export function VoucherCard({ voucher, expiring = false }: { voucher: Voucher; e
 
   return <article className={`voucher-card ${expiring ? 'expiring' : ''}`}>
     <div className="voucher-card-icon"><Tag size={22} /></div>
-    <div className="voucher-card-details"><span className="voucher-card-code">Mã {voucher.code}</span><h2>Giảm {voucher.discountValue.toLocaleString('vi-VN')}đ</h2><p>Cho đơn từ {voucher.minimumOrder.toLocaleString('vi-VN')}đ</p><small>HSD {formatDate(voucher.endDate)}</small></div>
+    <div className="voucher-card-details"><span className="voucher-card-code">Mã {voucher.code}</span><h2>Giảm {voucher.discountType === 'PERCENT' ? `${voucher.discountValue}%` : `${voucher.discountValue.toLocaleString('vi-VN')}đ`}</h2><p>Cho đơn từ {voucher.minimumOrder.toLocaleString('vi-VN')}đ</p><small>HSD {formatDate(voucher.endDate)}</small></div>
     <div className="voucher-card-actions"><button className="voucher-copy" type="button" onClick={copyCode}>{copied ? <Check size={16} /> : <Copy size={16} />}{copied ? 'Đã sao chép' : 'Sao chép mã'}</button><Link className="voucher-use" to="/products">Dùng ngay <ArrowRight size={15} /></Link></div>
   </article>;
 }

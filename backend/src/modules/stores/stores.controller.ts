@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../common/constants/roles';
+import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
+import { CreateStoreDto, ServiceabilityDto, UpdateStoreDto } from './dto/store.dto';
 import { StoresService } from './stores.service';
 
 @ApiTags('stores')
@@ -13,15 +15,23 @@ export class StoresController {
   constructor(private readonly stores: StoresService) {}
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  findAll() {
-    return this.stores.findAll();
+  findAll(@CurrentUser() user?: AuthUser) {
+    return this.stores.findAll(user);
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.stores.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+    return this.stores.findOne(id, user);
+  }
+
+  @Public()
+  @Post(':id/serviceability')
+  serviceability(@Param('id') id: string, @Body() dto: ServiceabilityDto) {
+    return this.stores.serviceability(id, dto.address);
   }
 
   @Roles(Role.ADMIN)

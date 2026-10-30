@@ -22,4 +22,8 @@ export class CreateStoreDto {
   @IsOptional() @ValidateNested() @Type(() => StoreShippingFeeDto) shippingFee?: StoreShippingFeeDto;
 }
 
+export class ServiceabilityDto {
+  @IsString() @IsNotEmpty() address: string;
+}
+
 export class UpdateStoreDto extends PartialType(CreateStoreDto) {}

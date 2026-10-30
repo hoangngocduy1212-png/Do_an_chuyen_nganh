@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { TOKEN_KEY } from '../api/client';
+import { REFRESH_TOKEN_KEY, TOKEN_KEY } from '../api/client';
 import type { AuthUser } from '../types';
 
 interface AuthState {
   user: AuthUser | null;
-  signIn: (token: string, user: AuthUser) => void;
+  signIn: (token: string, user: AuthUser, refreshToken?: string) => void;
   signOut: () => void;
   updateUser: (updates: Partial<AuthUser>) => void;
 }
@@ -30,13 +30,15 @@ function readUser(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(readUser);
 
-  const signIn = (token: string, u: AuthUser) => {
+  const signIn = (token: string, u: AuthUser, refreshToken?: string) => {
     localStorage.setItem(TOKEN_KEY, token);
+    if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     localStorage.setItem(USER_KEY, JSON.stringify(u));
     setUser(u);
   };
   const signOut = () => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setUser(null);
   };

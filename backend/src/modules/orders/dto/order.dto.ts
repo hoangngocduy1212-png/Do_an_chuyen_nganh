@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsIn, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator';
+
+export const PICKUP_TIME_PATTERN = /^(\d{2}:\d{2}\s*[–-]\s*\d{2}:\d{2}|\d{4}-\d{2}-\d{2}T.+)$/;
 
 export class OrderPreviewDto {
   @IsString({ message: 'Cửa hàng không hợp lệ' }) storeId: string;
@@ -11,7 +13,7 @@ export class OrderPreviewDto {
 export class CreateOrderDto extends OrderPreviewDto {
   @IsOptional() @IsString() recipientName?: string;
   @IsOptional() @IsString() recipientPhone?: string;
-  @IsOptional() @IsDateString({}, { message: 'Thời gian nhận hàng không hợp lệ' }) pickupTime?: string;
+  @IsOptional() @Matches(PICKUP_TIME_PATTERN, { message: 'Thời gian nhận hàng không hợp lệ' }) pickupTime?: string;
   @IsOptional() @IsString() note?: string;
   @IsOptional() @IsString() pickupNote?: string;
   @IsOptional() @IsIn(['CASH', 'TRANSFER', 'CARD'], { message: 'Phương thức thanh toán không hợp lệ' }) paymentMethod?: 'CASH' | 'TRANSFER' | 'CARD';
@@ -31,6 +33,8 @@ export class ShippingInfoDto {
   @IsOptional() @IsString() recipientName?: string;
   @IsOptional() @IsString() recipientPhone?: string;
   @IsOptional() @IsString() note?: string;
+  @IsOptional() @Matches(PICKUP_TIME_PATTERN, { message: 'Thời gian nhận hàng không hợp lệ' }) pickupTime?: string;
+  @IsOptional() @IsString() pickupNote?: string;
 }
 
 export class OrderListQueryDto {

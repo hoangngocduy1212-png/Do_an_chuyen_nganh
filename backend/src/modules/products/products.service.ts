@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
 import { ErrorCode } from '../../common/constants/error-codes';
+import { Role } from '../../common/constants/roles';
+import { AuthUser } from '../../common/decorators/current-user.decorator';
 import { Category } from '../categories/schemas/category.schema';
 import { Inventory } from '../inventory/schemas/inventory.schema';
 import { Order } from '../orders/schemas/order.schema';
@@ -28,11 +30,11 @@ export class ProductsService {
     @InjectModel(OrderItem.name) private readonly orderItems: Model<OrderItem>,
   ) {}
 
-  async findAll(query: ProductQueryDto) {
+  async findAll(query: ProductQueryDto, user?: AuthUser) {
     const now = new Date();
     const bestseller = query.collection === 'bestseller' ? await this.getBestsellers(query.storeId) : undefined;
     const pipeline: PipelineStage[] = [
-      { $match: { status: 'ACTIVE', ...(query.categoryId ? { categoryId: query.categoryId } : {}) } },
+      { $match: { ...(user?.role === Role.ADMIN ? {} : { status: 'ACTIVE' }), ...(query.categoryId ? { categoryId: query.categoryId } : {}) } },
       {
         $addFields: {
           _saleActive: {
@@ -153,9 +155,9 @@ export class ProductsService {
     return { data: items, meta: { page: query.page, limit: query.limit, total } };
   }
 
-  async findOne(id: string, storeId?: string) {
+  async findOne(id: string, storeId?: string, user?: AuthUser) {
     const product = await this.products.findOne({ productId: id }).exec();
-    if (!product || product.status !== 'ACTIVE') {
+    if (!product || (product.status !== 'ACTIVE' && user?.role !== Role.ADMIN)) {
       throw new NotFoundException({ code: ErrorCode.PRODUCT_NOT_FOUND, message: 'Không tìm thấy sản phẩm đang bán' });
     }
     const category = await this.categories.findOne({ categoryId: product.categoryId }).select('categoryName').exec();

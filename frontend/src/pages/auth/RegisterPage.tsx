@@ -49,7 +49,7 @@ export default function RegisterPage() {
         fullName: result.user.fullName,
         email: result.user.email ?? form.email.trim(),
         role: result.user.role,
-      });
+      }, result.refreshToken);
       const returnTo = new URLSearchParams(location.search).get('returnTo');
       navigate(returnTo?.startsWith('/') ? returnTo : '/');
     } catch (error) {

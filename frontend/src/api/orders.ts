@@ -1,4 +1,4 @@
-import type { CustomerOrder, OrderTrackingEvent } from '../types/order';
+import type { CustomerOrder, OrderStatus, OrderTrackingEvent } from '../types/order';
 import { mockOrders, mockTrackingEvents } from './mock/account';
 import { mockProducts, mockStockByStore, mockStores } from './mock/data';
 import { http, isMockEnabled, unwrapApiResponse, errorMessage } from './client';
@@ -10,6 +10,22 @@ import { vouchersApi } from './vouchers';
 const MOCK_ORDERS_KEY = 'muadee-mock-orders';
 const MOCK_SEED_ORDER_STATES_KEY = 'muadee-mock-order-states';
 const MOCK_IDEMPOTENCY_KEY = 'muadee-mock-idempotency';
+
+export interface AdminOrderRecord extends CustomerOrder {
+  _id?: string;
+  customerId?: string;
+  paidAmount?: number;
+  amountDue?: number;
+  statusHistory?: Array<{ status: OrderStatus; at: string; by: string }>;
+  payments?: Array<{ paymentId: string; paymentMethod: string; paymentStatus: string; amount: number; createdAt?: string }>;
+}
+
+export interface AdminOrderPage {
+  items: AdminOrderRecord[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export interface OrderPreviewInput {
   storeId: string;
@@ -114,6 +130,27 @@ function assertValidCart(storeId: string, lines: StoredMockCartLine[]) {
 }
 
 export const ordersApi = {
+  adminList: async (params: { orderStatus?: OrderStatus; storeId?: string; page: number; limit: number }): Promise<AdminOrderPage> => {
+    if (isMockEnabled) {
+      if (import.meta.env.VITE_MOCK_ORDERS_EMPTY === 'true') return { items: [], total: 0, page: params.page, limit: params.limit };
+      if (import.meta.env.VITE_MOCK_ACCOUNT_NETWORK_ERROR === 'orders') throw new MockApiError('Không tải được đơn hàng.', 'NETWORK');
+      const filtered = allMockOrders().filter((order) => (!params.orderStatus || order.orderStatus === params.orderStatus) && (!params.storeId || order.storeId === params.storeId));
+      const start = (params.page - 1) * params.limit;
+      return { items: filtered.slice(start, start + params.limit).map((order) => ({ ...order })), total: filtered.length, page: params.page, limit: params.limit };
+    }
+    const response = await http.get<{ success: true; data: AdminOrderRecord[]; meta?: { page: number; limit: number; total: number } }>('/orders', { params });
+    const items = unwrapApiResponse(response);
+    return { items, total: response.data.meta?.total ?? items.length, page: response.data.meta?.page ?? params.page, limit: response.data.meta?.limit ?? params.limit };
+  },
+  adminGet: async (orderId: string): Promise<AdminOrderRecord> => {
+    if (isMockEnabled) {
+      const order = findMockOrder(orderId);
+      if (!order) throw new MockApiError('Không tìm thấy đơn hàng.', 'ORDER_NOT_FOUND');
+      return { ...order, items: order.items?.map((item) => ({ ...item })) };
+    }
+    const response = await http.get<{ success: true; data: AdminOrderRecord }>(`/orders/${orderId}`);
+    return unwrapApiResponse(response);
+  },
   mine: async (limit = 20): Promise<CustomerOrder[]> => {
     if (isMockEnabled) {
       if (import.meta.env.VITE_MOCK_ORDERS_EMPTY === 'true') return [];

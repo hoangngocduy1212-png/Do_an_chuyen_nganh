@@ -41,8 +41,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private messageFor(status: number, message: string | string[] | undefined, exception: unknown): string {
     if (status === HttpStatus.BAD_REQUEST && Array.isArray(message)) return message.join('; ');
     if (status === HttpStatus.TOO_MANY_REQUESTS) return 'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau';
-    if (status === HttpStatus.NOT_FOUND) return 'Không tìm thấy tài nguyên được yêu cầu';
-    if (status === HttpStatus.CONFLICT) return 'Dữ liệu bị xung đột';
+    if (status === HttpStatus.NOT_FOUND) return typeof message === 'string' && message !== 'Not Found' ? message : 'Không tìm thấy tài nguyên được yêu cầu';
+    if (status === HttpStatus.CONFLICT) return typeof message === 'string' && message !== 'Conflict' ? message : 'Dữ liệu bị xung đột';
     if (status === HttpStatus.UNAUTHORIZED && message === 'Unauthorized') return 'Vui lòng đăng nhập để tiếp tục';
     if (typeof message === 'string') return message;
     if (status === HttpStatus.UNAUTHORIZED) return 'Vui lòng đăng nhập để tiếp tục';

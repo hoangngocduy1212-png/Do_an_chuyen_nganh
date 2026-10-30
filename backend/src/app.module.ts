@@ -20,6 +20,13 @@ import { StoresModule } from './modules/stores/stores.module';
 import { CartsModule } from './modules/carts/carts.module';
 import { VouchersModule } from './modules/vouchers/vouchers.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
+import { MembershipsModule } from './modules/memberships/memberships.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { UserActivitiesModule } from './modules/user-activities/user-activities.module';
+import { AiFeedbackModule } from './modules/ai-feedback/ai-feedback.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -38,6 +45,13 @@ import { PaymentsModule } from './modules/payments/payments.module';
     PaymentsModule,
     InventoryModule,
     OrdersModule,
+    AdminDashboardModule,
+    MembershipsModule,
+    ReviewsModule,
+    UserActivitiesModule,
+    AiFeedbackModule,
+    RecommendationsModule,
+    ChatModule,
     // Them module moi (products, orders, ...) vao day
   ],
   controllers: [AppController],

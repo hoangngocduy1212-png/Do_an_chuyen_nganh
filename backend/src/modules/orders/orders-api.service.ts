@@ -26,12 +26,13 @@ import { InventoryRequest, InventoryService } from '../inventory/inventory.servi
 import { Membership } from '../memberships/schemas/membership.schema';
 import { MembershipLevel } from '../membership-levels/schemas/membership-level.schema';
 import { OrderItem } from '../order-items/schemas/order-item.schema';
-import { Order, OrderStatus, PaymentMethod, ReceiveMethod } from './schemas/order.schema';
+import { Order, OrderStatus, PaymentMethod, ReceiveMethod, parsePickupTime } from './schemas/order.schema';
 import { OrdersService } from './orders.service';
 import { Payment } from '../payments/schemas/payment.schema';
 import { PointTransaction } from '../point-transactions/schemas/point-transaction.schema';
 import { Product } from '../products/schemas/product.schema';
-import { Store, StoreDeliveryZone } from '../stores/schemas/store.schema';
+import { matchesDeliveryZone } from '../../common/utils/delivery-zone';
+import { Store } from '../stores/schemas/store.schema';
 import { User } from '../users/schemas/user.schema';
 import { Voucher } from '../vouchers/schemas/voucher.schema';
 import { VouchersService } from '../vouchers/vouchers.service';
@@ -147,7 +148,7 @@ export class OrdersApiService {
           shippingAddress: dto.receiveMethod === 'DELIVERY' ? dto.shippingAddress : undefined,
           recipientName,
           recipientPhone,
-          pickupTime: dto.pickupTime ? new Date(dto.pickupTime) : undefined,
+          ...(dto.pickupTime ? parsePickupTime(dto.pickupTime) : {}),
           note: dto.note ?? dto.pickupNote,
           subtotal: prepared.subtotal,
           discountAmount: prepared.discountAmount,
@@ -248,6 +249,23 @@ export class OrdersApiService {
     };
   }
 
+  async tracking(user: AuthUser, id: string) {
+    const order = await this.findOrder(id);
+    await this.assertAccess(user, order);
+    const delivery = await this.deliveries.findOne({ orderId: String(order._id) }).exec();
+    if (delivery) {
+      return {
+        carrierName: delivery.carrierName,
+        trackingCode: delivery.trackingCode,
+        status: delivery.deliveryStatus,
+        events: delivery.events.map((event) => ({ time: event.time.toISOString(), status: event.status, location: event.location })),
+      };
+    }
+    return {
+      events: order.statusHistory.map((entry) => ({ time: entry.at.toISOString(), status: entry.status, location: '' })),
+    };
+  }
+
   async updateShippingInfo(user: AuthUser, id: string, dto: ShippingInfoDto) {
     const order = await this.findOrder(id);
     await this.assertAccess(user, order);
@@ -257,7 +275,7 @@ export class OrdersApiService {
     if (order.receiveMethod !== 'DELIVERY' && dto.shippingAddress) {
       throw new BadRequestException({ code: ErrorCode.VALIDATION_ERROR, message: 'Đơn nhận tại cửa hàng không có địa chỉ giao hàng' });
     }
-    Object.assign(order, dto);
+    Object.assign(order, dto, dto.pickupTime ? parsePickupTime(dto.pickupTime) : {});
     await order.save();
     return order;
   }
@@ -652,20 +670,6 @@ function mapOrderItem(item: HydratedDocument<OrderItem>) {
     itemId: String(value.orderItemId ?? value._id),
     price: item.unitPrice,
   };
-}
-
-function matchesDeliveryZone(address: string, zones: StoreDeliveryZone[]): boolean {
-  if (!zones.length) return false;
-  const normalizedAddress = normalize(address);
-  return zones.some((zone) => {
-    const districtMatches = normalizedAddress.includes(normalize(zone.district));
-    const wardMatches = zone.wards.length === 0 || zone.wards.some((ward) => normalizedAddress.includes(normalize(ward)));
-    return districtMatches && wardMatches;
-  });
-}
-
-function normalize(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase();
 }
 
 function isDuplicateKey(error: unknown): boolean {

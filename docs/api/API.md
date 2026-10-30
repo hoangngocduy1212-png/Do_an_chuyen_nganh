@@ -94,6 +94,12 @@ Giỏ gắn với cửa hàng; không thể trộn sản phẩm từ nhiều c�
 | POST | `/inventory/import` | ADMIN | Nhập tồn. |
 | POST | `/inventory/export` | ADMIN | Xuất tồn; không cho xuất vượt tồn khả dụng. |
 
+## Dashboard quản trị
+
+| Method | Path | Quyền | Hành vi |
+|---|---|---|---|
+| GET | `/admin/dashboard` | ADMIN | Tổng hợp doanh thu payment thành công 6 tháng, số đơn và trạng thái, tồn thấp cùng các chỉ số catalog; trả số document của 26 collection đã khai báo. Chỉ đọc dữ liệu, không tạo collection mới. |
+
 ## Đơn hàng
 
 | Method | Path | Quyền | Ghi chú |

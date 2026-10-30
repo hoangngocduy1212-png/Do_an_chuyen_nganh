@@ -18,16 +18,16 @@ describe('database seed', () => {
     await replicaSet?.stop();
   });
 
-  it('tạo 80 sản phẩm, 600 đơn và chạy lặp lại không nhân bản dữ liệu', async () => {
+  it('tạo 30 sản phẩm, 600 đơn và chạy lặp lại không nhân bản dữ liệu', async () => {
     const uri = replicaSet.getUri('muadee_seed_test');
     await createIndexes(uri);
     await seedDatabase(uri, true);
     await seedDatabase(uri, false);
     connection = await createConnection(uri).asPromise();
 
-    expect(await connection.collection('products').countDocuments()).toBe(80);
+    expect(await connection.collection('products').countDocuments()).toBe(30);
     expect(await connection.collection('orders').countDocuments()).toBe(600);
-    expect(await connection.collection('inventories').countDocuments()).toBe(240);
+    expect(await connection.collection('inventories').countDocuments()).toBe(90);
     expect(await connection.collection('users').countDocuments()).toBe(34);
     expect(await connection.collection('knowledgedocuments').countDocuments()).toBe(30);
     expect(await connection.collection('aiconfigs').countDocuments()).toBe(3);

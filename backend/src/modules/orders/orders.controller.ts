@@ -55,6 +55,12 @@ export class OrdersController {
   }
 
   @Roles(Role.CUSTOMER, Role.STAFF, Role.ADMIN)
+  @Get(':id/tracking')
+  tracking(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.orders.tracking(user, id);
+  }
+
+  @Roles(Role.CUSTOMER, Role.STAFF, Role.ADMIN)
   @Get(':id')
   getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.orders.getOne(user, id);

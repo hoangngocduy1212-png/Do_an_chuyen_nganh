@@ -4,7 +4,6 @@ import { ArrowRight, PackageSearch, RotateCw } from 'lucide-react';
 import { cartApi } from '../../api/cart';
 import { ordersApi } from '../../api/orders';
 import { productsApi } from '../../api/products';
-import { Breadcrumb } from '../../components/common/Breadcrumb';
 import { OrderSummaryCard } from '../../components/order/OrderSummaryCard';
 import type { CustomerOrder, OrderStatus } from '../../types/order';
 import { cartStore } from '../../store/cartStore';
@@ -73,9 +72,8 @@ export default function OrdersPage() {
     } finally { setBusyOrderId(undefined); }
   }
 
-  return <div className="customer-shell orders-page">
-    <Breadcrumb items={[{ label: 'Đơn hàng của tôi' }]} />
-    <header className="listing-heading"><span className="section-eyebrow">ĐƠN HÀNG CỦA BẠN</span><h1>Đơn hàng của tôi</h1><p>Theo dõi tình trạng và lịch sử mua sắm tại Muadee.</p></header>
+  return <div className="orders-page">
+    <header className="listing-heading"><span className="section-eyebrow">ĐƠN HÀNG CỦA BẠN</span><h2>Đơn hàng của tôi</h2><p>Theo dõi tình trạng và lịch sử mua sắm tại Muadee.</p></header>
     {!loading && !error && <div className="orders-filter-list" role="tablist" aria-label="Lọc đơn hàng">
       {filters.map((filter, index) => <button key={filter.label} type="button" role="tab" aria-selected={activeFilter === index} className={activeFilter === index ? 'selected' : ''} onClick={() => { setActiveFilter(index); setVisibleCount(10); }}>{filter.label}</button>)}
     </div>}

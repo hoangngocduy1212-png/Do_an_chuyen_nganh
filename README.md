@@ -22,7 +22,7 @@ React + TypeScript -> REST API (NestJS) -> MongoDB
 - Backend có nghiệp vụ thực cho đăng ký/đăng nhập, danh mục/sản phẩm/cửa hàng, giỏ, voucher, tồn kho, đặt hàng và một phần xử lý thanh toán.
 - Đơn hàng có preview, idempotency key bắt buộc, giữ tồn và xử lý đơn hàng theo cân. Transaction MongoDB cần replica set; Atlas đáp ứng yêu cầu này.
 - Thanh toán có QR VietQR, hosted-checkout URL cấu hình được, webhook HMAC và mock confirm. Chưa có adapter/đối soát thật với ngân hàng hoặc cổng thẻ.
-- Chưa có API backend đang đăng ký cho delivery, review, membership, reports, chat/knowledge, recommendation, forecast hoặc admin CRUD người dùng/nhân viên. Các thư mục/schema có mặt không đồng nghĩa endpoint đang chạy.
+- Dashboard admin có endpoint tổng hợp chỉ đọc `/api/v1/admin/dashboard`; dashboard đếm 26 collection đã khai báo, không tạo collection mới. Chưa có API backend đang đăng ký cho delivery, review, membership, báo cáo nghiệp vụ tổng quát, chat/knowledge, recommendation, forecast hoặc admin CRUD người dùng/nhân viên. Các thư mục/schema có mặt không đồng nghĩa endpoint đang chạy.
 - Frontend mock có thể làm giao diện hoạt động mà không ghi dữ liệu thật. Kiểm tra `VITE_USE_MOCK` trước khi đánh giá luồng frontend là đã tích hợp backend.
 - `docs/api/API.md` là danh sách route đang chạy cộng với các giới hạn; Swagger tại `/api/docs` là tài liệu runtime sinh từ NestJS.
 

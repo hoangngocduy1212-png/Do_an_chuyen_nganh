@@ -3,6 +3,12 @@ import { AdminLayout } from '../layouts/AdminLayout';
 import { CustomerLayout } from '../layouts/CustomerLayout';
 import { StaffLayout } from '../layouts/StaffLayout';
 import AdminHomePage from '../pages/admin/dashboard/AdminHomePage';
+import AdminCategoriesPage from '../pages/admin/categories/AdminCategoriesPage';
+import AdminStoresPage from '../pages/admin/stores/AdminStoresPage';
+import AdminProductsPage from '../pages/admin/products/AdminProductsPage';
+import AdminVouchersPage from '../pages/admin/vouchers/AdminVouchersPage';
+import AdminInventoryPage from '../pages/admin/inventory/AdminInventoryPage';
+import AdminOrdersPage from '../pages/admin/orders/AdminOrdersPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
@@ -57,11 +63,9 @@ export function AppRoutes() {
           <Route path="/profile/reviews" element={<ReviewsPage />} />
           <Route path="/profile/support" element={<SupportHistoryPage />} />
           <Route path="/profile/security" element={<SecurityPage />} />
+          <Route path="/orders" element={<CustomerOrdersPage />} />
         </Route>
         <Route path="/profile/vouchers" element={<VoucherRedirect />} />
-      </Route>
-      <Route path="/orders" element={<RequireRole roles={['CUSTOMER']}><CustomerLayout /></RequireRole>}>
-        <Route index element={<RequireRole roles={['CUSTOMER']}><CustomerOrdersPage /></RequireRole>} />
       </Route>
 
       <Route path="/login" element={<LoginPage />} />
@@ -77,6 +81,14 @@ export function AppRoutes() {
       <Route path="/admin" element={<RequireRole roles={['ADMIN']}><AdminLayout /></RequireRole>}>
         <Route index element={<AdminHomePage />} />
         <Route path="dashboard" element={<AdminHomePage />} />
+        <Route path="products" element={<AdminProductsPage />} />
+        <Route path="categories" element={<AdminCategoriesPage />} />
+        <Route path="stores" element={<AdminStoresPage />} />
+        <Route path="vouchers" element={<AdminVouchersPage />} />
+        <Route path="inventory" element={<AdminInventoryPage />} />
+        <Route path="orders/:id" element={<AdminOrdersPage />} />
+        <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>
   );

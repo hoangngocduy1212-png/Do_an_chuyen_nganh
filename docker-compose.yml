@@ -23,6 +23,8 @@ services:
     build: ./backend
     restart: unless-stopped
     env_file: .env
+    volumes:
+      - ./backend/uploads:/app/uploads
     environment:
       MONGODB_URI: mongodb://mongo:27017/supermarket?replicaSet=rs0
       MONGO_URI: mongodb://mongo:27017/supermarket?replicaSet=rs0
