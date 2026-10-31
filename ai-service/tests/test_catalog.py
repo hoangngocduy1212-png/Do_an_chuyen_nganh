@@ -22,6 +22,7 @@ def _fake_db(monkeypatch):
     }
     monkeypatch.setattr(catalog, "get_db", lambda: {k: Coll(v) for k, v in data.items()})
     catalog._cache.update(at=0.0, docs=[])
+    catalog._stock_cache.clear()
 
 
 def test_similar_prefers_same_category(monkeypatch):

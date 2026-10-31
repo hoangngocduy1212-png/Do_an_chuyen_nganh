@@ -77,6 +77,38 @@ export class ChatService {
     return { answer, sources, needHandover, messageId: String(reply._id), products, status: session.status };
   }
 
+  async sendImages(
+    sessionId: string,
+    files: Array<{ buffer: Buffer; mimetype: string; originalname: string }>,
+    content: string,
+    storeId: string | undefined,
+    user?: AuthUser,
+  ) {
+    const session = await this.getSession(sessionId, user);
+    const label = `${content || 'Tìm sản phẩm giống ảnh'} [${files.length} ảnh]`;
+    const customerMessage = await this.messages.create({ sessionId, senderType: 'CUSTOMER', content: label });
+    if (session.status !== 'AI_CHATTING') {
+      await this.sessions.updateOne({ _id: session._id }, { $set: { lastMessageAt: new Date() } });
+      return { answer: '', messageId: String(customerMessage._id), status: session.status };
+    }
+
+    let answer = FALLBACK_ANSWER;
+    let needHandover = true;
+    let products: unknown[] = [];
+    try {
+      const result = await this.ai.analyzeImages(files, content, storeId);
+      answer = result.answer;
+      needHandover = false;
+      if (storeId && result.productIds.length) products = await this.recommendations.hydrate(result.productIds, storeId);
+    } catch (error) {
+      this.logger.warn(`Image AI failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    const reply = await this.messages.create({ sessionId, senderType: 'CHATBOT', content: answer, sources: [], needHandover });
+    await this.sessions.updateOne({ _id: session._id }, { $set: { lastMessageAt: new Date(), ...(storeId ? { storeId } : {}) } });
+    return { answer, sources: [], needHandover, messageId: String(reply._id), products, status: session.status };
+  }
+
   async history(sessionId: string, user?: AuthUser) {
     const session = await this.getSession(sessionId, user);
     const rows = await this.messages.find({ sessionId }).sort({ createdAt: 1 }).lean<MessageDoc[]>().exec();

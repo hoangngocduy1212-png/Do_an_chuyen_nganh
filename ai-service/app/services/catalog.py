@@ -8,6 +8,7 @@ from app.db.mongo import get_db
 
 _CACHE_TTL = 300
 _cache: dict = {"at": 0.0, "docs": []}
+_stock_cache: dict[str, tuple[float, set[str]]] = {}
 
 
 def normalize(text: str) -> str:
@@ -24,10 +25,16 @@ def tokenize(text: str) -> list[str]:
 def _load() -> list[dict]:
     if time.time() - _cache["at"] < _CACHE_TTL and _cache["docs"]:
         return _cache["docs"]
-    db = get_db()
-    categories = {c["categoryId"]: c.get("categoryName", "") for c in db["categories"].find({}, {"categoryId": 1, "categoryName": 1})}
+    try:
+        db = get_db()
+        categories = {c["categoryId"]: c.get("categoryName", "") for c in db["categories"].find({}, {"categoryId": 1, "categoryName": 1})}
+        products = list(db["products"].find({"status": "ACTIVE"}))
+    except Exception:
+        if _cache["docs"]:
+            return _cache["docs"]
+        raise
     docs = []
-    for p in db["products"].find({"status": "ACTIVE"}):
+    for p in products:
         text = f"{p.get('productName', '')} {p.get('productName', '')} {categories.get(p.get('categoryId'), '')} {p.get('description', '')}"
         docs.append({
             "productId": p["productId"],
@@ -50,8 +57,18 @@ def _load() -> list[dict]:
 def _in_stock(store_id: str | None) -> set[str] | None:
     if not store_id:
         return None
-    rows = get_db()["inventories"].find({"storeId": store_id}, {"productId": 1, "quantity": 1, "reservedQuantity": 1})
-    return {r["productId"] for r in rows if r.get("quantity", 0) - r.get("reservedQuantity", 0) > 0}
+    cached = _stock_cache.get(store_id)
+    if cached and time.time() - cached[0] < _CACHE_TTL:
+        return cached[1]
+    try:
+        rows = list(get_db()["inventories"].find({"storeId": store_id}, {"productId": 1, "quantity": 1, "reservedQuantity": 1}))
+    except Exception:
+        if cached:
+            return cached[1]
+        raise
+    ids = {r["productId"] for r in rows if r.get("quantity", 0) - r.get("reservedQuantity", 0) > 0}
+    _stock_cache[store_id] = (time.time(), ids)
+    return ids
 
 
 def _cosine(a: dict, b: dict) -> float:

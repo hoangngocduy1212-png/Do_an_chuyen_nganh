@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_model: str = ""
     ollama_url: str = "http://localhost:11434"
+    vision_model: str = "moondream"
+    uploads_dir: str = "../backend/uploads"
 
 
 settings = Settings()

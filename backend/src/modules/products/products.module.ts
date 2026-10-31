@@ -6,6 +6,7 @@ import { Order, OrderSchema } from '../orders/schemas/order.schema';
 import { OrderItem, OrderItemSchema } from '../order-items/schemas/order-item.schema';
 import { Product, ProductSchema } from './schemas/product.schema';
 import { ProductsController } from './products.controller';
+import { ImageStorageService } from './image-storage.service';
 import { ProductsService } from './products.service';
 
 @Module({
@@ -19,7 +20,7 @@ import { ProductsService } from './products.service';
     ]),
   ],
   controllers: [ProductsController],
-  providers: [ProductsService],
+  providers: [ProductsService, ImageStorageService],
   exports: [MongooseModule],
 })
 export class ProductsModule {}

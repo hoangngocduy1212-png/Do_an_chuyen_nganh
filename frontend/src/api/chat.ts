@@ -48,6 +48,18 @@ export const chatApi = {
     }
     return http.post<{ success: true; data: ChatResult }>(`/chat/sessions/${sessionId}/messages`, { content, storeId }, { timeout: 65000 }).then(unwrapApiResponse);
   },
+  sendImages: async (sessionId: string, files: File[], content: string, storeId: string): Promise<ChatResult> => {
+    if (isMockEnabled) {
+      await delay(600);
+      const products = mockProducts.slice(0, 3);
+      return { answer: 'Mình thấy ảnh bạn gửi, đây là vài sản phẩm tương tự tại cửa hàng.', messageId: crypto.randomUUID(), products, status: mockStatus() };
+    }
+    const form = new FormData();
+    files.forEach((file) => form.append('images', file));
+    form.append('content', content);
+    if (storeId) form.append('storeId', storeId);
+    return http.post<{ success: true; data: ChatResult }>(`/chat/sessions/${sessionId}/images`, form, { timeout: 240000, headers: { 'Content-Type': 'multipart/form-data' } }).then(unwrapApiResponse);
+  },
   handover: async (sessionId: string): Promise<ChatSession> => {
     if (isMockEnabled) {
       const next: ChatSession = { sessionId, status: 'HANDED_OVER', agentName: 'Minh Anh' };

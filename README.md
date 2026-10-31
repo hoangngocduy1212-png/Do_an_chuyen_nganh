@@ -13,7 +13,7 @@ React + TypeScript -> REST API (NestJS) -> MongoDB
 |---|---|---|
 | `frontend/` | React, TypeScript, Vite | Luồng khách hàng có trang sản phẩm, giỏ hàng, checkout, thanh toán, đơn hàng và tài khoản. Có chế độ mock `VITE_USE_MOCK=true`. Route `/staff` và `/admin` hiện chỉ hiển thị trang TODO. |
 | `backend/` | NestJS, Mongoose | API đang đăng ký: health, auth, hồ sơ hiện tại, categories, products, stores, cart, vouchers, inventory, orders và payments. Chi tiết ở [API hiện hành](docs/api/API.md). |
-| `ai-service/` | FastAPI, PyMongo | `/health`, `/chat`, `/recommend`, `/forecast/run` tồn tại; chat/gợi ý/dự báo hiện là placeholder, chưa nối dữ liệu Mongo hoặc LLM trong service. |
+| `ai-service/` | FastAPI, PyMongo, Ollama, CLIP, EasyOCR | `/chat` (gợi ý sản phẩm, LLM Ollama hoặc OpenAI, có fallback từ khóa), `/recommend` (sản phẩm tương tự/bán chạy bằng TF-IDF), `/image/analyze` (CLIP tìm sản phẩm giống ảnh, OCR, mô tả ảnh bằng moondream, tối đa 4 ảnh). `/forecast/run` vẫn là placeholder. |
 | `database/` | MongoDB scripts/seed | Seed dữ liệu mẫu, tạo indexes; schema ứng dụng nằm trong `backend/src/modules/*/schemas`. |
 | `docs/` | Markdown + Mermaid | API và UML phải phản ánh endpoint/luồng đã triển khai. Sơ đồ hiện hành ở `docs/uml/`. |
 
@@ -72,6 +72,21 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 Backend Swagger: `http://localhost:3000/api/docs`; frontend Vite: `http://localhost:5173`; AI docs: `http://localhost:8000/docs`.
+
+### Tính năng AI (tùy chọn)
+
+Không cần Ollama thì web vẫn chạy; chatbot chỉ tìm theo từ khóa, không mô tả được ảnh. Để dùng đủ AI trên máy của bạn:
+
+```powershell
+ollama pull qwen2.5:3b
+ollama pull moondream
+```
+
+Trong `.env`: `LLM_PROVIDER=ollama`, `LLM_MODEL=qwen2.5:3b`, `AI_SERVICE_TIMEOUT_MS=60000` (model chạy CPU, mỗi câu 15–50 giây). Lần gọi ảnh đầu tiên chậm vì phải nạp model và dựng chỉ mục CLIP. Người chỉ muốn xem giao diện có thể chạy frontend và trỏ tới backend/ai-service của người khác.
+
+### Ảnh sản phẩm (Cloudinary)
+
+Đặt `CLOUDINARY_URL` trong `.env` để ảnh upload ở trang admin được lưu trên Cloudinary và mọi máy đều thấy. Nếu để trống, ảnh lưu cục bộ ở `backend/uploads/` (không đưa lên Git) nên máy khác sẽ không thấy. Chuyển ảnh cũ lên cloud: `node --env-file=../.env scripts/migrate-images-to-cloudinary.js` trong thư mục `backend`.
 
 ## Seed dữ liệu
 

@@ -5,6 +5,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'staff';
   content: string;
   products?: Product[];
+  images?: string[];
   loginRequired?: boolean;
 }
 

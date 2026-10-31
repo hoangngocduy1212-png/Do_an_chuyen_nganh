@@ -43,6 +43,9 @@ services:
     env_file: .env
     environment:
       MONGO_URI: mongodb://mongo:27017/supermarket?replicaSet=rs0
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - ./backend/uploads:/app/uploads:ro
     ports:
       - "${AI_SERVICE_PORT:-8000}:8000"
     depends_on:

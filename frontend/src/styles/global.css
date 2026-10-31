@@ -281,6 +281,13 @@ button { padding: 10px 14px; border: 0; border-radius: 6px; background: #0b6bcb;
 .chat-composer textarea { flex: 1; min-width: 0; max-height: 80px; resize: none; padding: 9px 10px; border-radius: 5px; font: inherit; font-size: 11px; line-height: 1.45; }
 .chat-composer button { width: 38px; display: grid; place-items: center; padding: 0; border-radius: 5px; background: var(--muadee-green); }
 .chat-composer button:disabled { opacity: .5; }
+.chat-composer .chat-attach { background: #f3faf6; color: var(--muadee-green); border: 1px solid #b9daca; }
+.chat-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.chat-attachments.pending { padding: 8px 10px 0; margin: 0; }
+.chat-attachments img { width: 56px; height: 56px; object-fit: cover; border-radius: 5px; border: 1px solid #dfe8e3; }
+.chat-attachments.pending span { position: relative; }
+.chat-attachments.pending button { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; display: grid; place-items: center; padding: 0; border-radius: 50%; background: #333; color: #fff; }
+.chat-product-card a { color: inherit; text-decoration: none; }
 .chat-footer { padding: 8px 10px 10px; border-top: 1px solid #eef2f0; background: #fff; }
 .chat-footer button { width: 100%; min-height: 34px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 7px; border: 1px solid #b9daca; border-radius: 5px; background: #f3faf6; color: var(--muadee-green); font-size: 10px; font-weight: 700; }
 .chat-footer button:disabled { border-color: #e2e9e5; background: #f4f6f5; color: #84918b; cursor: default; }
