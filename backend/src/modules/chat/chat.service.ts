@@ -11,6 +11,7 @@ import { Customer } from '../customers/schemas/customer.schema';
 import { Employee } from '../employees/schemas/employee.schema';
 import { Order } from '../orders/schemas/order.schema';
 import { Product } from '../products/schemas/product.schema';
+import { RecommendationsService } from '../recommendations/recommendations.service';
 import { User } from '../users/schemas/user.schema';
 
 const HISTORY_LIMIT = 10;
@@ -26,6 +27,7 @@ export class ChatService {
 
   constructor(
     private readonly ai: AiClientService,
+    private readonly recommendations: RecommendationsService,
     @InjectModel(ChatSession.name) private readonly sessions: Model<ChatSession>,
     @InjectModel(ChatMessage.name) private readonly messages: Model<ChatMessage>,
     @InjectModel(Customer.name) private readonly customers: Model<Customer>,
@@ -55,6 +57,7 @@ export class ChatService {
     let answer = FALLBACK_ANSWER;
     let sources: string[] = [];
     let needHandover = true;
+    let products: unknown[] = [];
     try {
       const result = await this.ai.chat({
         sessionId,
@@ -64,13 +67,14 @@ export class ChatService {
         customerContext: await this.customerContext(session.customerId),
       });
       ({ answer, sources, needHandover } = result);
+      if (storeId && result.productIds?.length) products = await this.recommendations.hydrate(result.productIds, storeId);
     } catch (error) {
       this.logger.warn(`Chat AI failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     const reply = await this.messages.create({ sessionId, senderType: 'CHATBOT', content: answer, sources, needHandover });
     await this.sessions.updateOne({ _id: session._id }, { $set: { lastMessageAt: new Date(), ...(storeId ? { storeId } : {}) } });
-    return { answer, sources, needHandover, messageId: String(reply._id), products: [], status: session.status };
+    return { answer, sources, needHandover, messageId: String(reply._id), products, status: session.status };
   }
 
   async history(sessionId: string, user?: AuthUser) {

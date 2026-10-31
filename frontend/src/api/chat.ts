@@ -46,7 +46,7 @@ export const chatApi = {
       mockSessions.set(sessionId, { sessionId, status });
       return { answer, messageId: assistantMessage.id, products, status };
     }
-    return http.post<{ success: true; data: ChatResult }>(`/chat/sessions/${sessionId}/messages`, { content, storeId }, { timeout: 15000 }).then(unwrapApiResponse);
+    return http.post<{ success: true; data: ChatResult }>(`/chat/sessions/${sessionId}/messages`, { content, storeId }, { timeout: 65000 }).then(unwrapApiResponse);
   },
   handover: async (sessionId: string): Promise<ChatSession> => {
     if (isMockEnabled) {

@@ -18,4 +18,5 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     sources: list[str] = []
+    productIds: list[str] = []  # san pham AI goi y; backend se gan thong tin chi tiet
     needHandover: bool = False  # True -> backend chuyen cho nhan vien CSKH

@@ -13,6 +13,7 @@ export interface AiChatResponse {
   answer: string;
   sources: string[];
   needHandover: boolean;
+  productIds?: string[];
 }
 
 export interface AiRecommendRequest {

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     llm_provider: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
+    ollama_url: str = "http://localhost:11434"
 
 
 settings = Settings()

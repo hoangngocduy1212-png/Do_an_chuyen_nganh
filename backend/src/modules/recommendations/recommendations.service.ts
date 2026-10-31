@@ -54,7 +54,7 @@ export class RecommendationsService {
     return this.hydrate(rows.map((row) => row.productId), storeId);
   }
 
-  private async hydrate(productIds: string[], storeId: string) {
+  async hydrate(productIds: string[], storeId: string) {
     if (!productIds.length) return [];
     const [products, stock] = await Promise.all([
       this.products.find({ productId: { $in: productIds }, status: 'ACTIVE' }).exec(),
