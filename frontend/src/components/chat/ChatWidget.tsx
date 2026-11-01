@@ -46,8 +46,17 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const imageUrlsRef = useRef(new Set<string>());
+
+  useEffect(() => () => {
+    imageUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    imageUrlsRef.current.clear();
+  }, []);
 
   function closeChat() {
+    imageUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    imageUrlsRef.current.clear();
+    setPendingImages([]);
     setSession(null);
     setMessages([newMessage('assistant', GREETING)]);
     setFeedbackGiven([]);
@@ -58,6 +67,9 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
 
   useEffect(() => {
     if (open) return;
+    imageUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    imageUrlsRef.current.clear();
+    setPendingImages([]);
     setSession(null);
     setMessages([newMessage('assistant', GREETING)]);
     setFeedbackGiven([]);
@@ -150,13 +162,28 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
   }
 
   function onPickImages(event: ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(event.target.files ?? []).filter((file) => file.size <= 5 * 1024 * 1024);
+    const selected = Array.from(event.target.files ?? []);
+    const valid = selected.filter((file) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size > 0 && file.size <= 5 * 1024 * 1024);
+    if (valid.length !== selected.length) window.dispatchEvent(new CustomEvent('muadee:toast', { detail: 'Chỉ nhận ảnh JPG, PNG, WebP tối đa 5 MB mỗi ảnh.' }));
     event.target.value = '';
-    setPendingImages((current) => [...current, ...picked.map((file) => ({ file, url: URL.createObjectURL(file) }))].slice(0, MAX_IMAGES));
+    setPendingImages((current) => {
+      const room = MAX_IMAGES - current.length;
+      if (valid.length > room) window.dispatchEvent(new CustomEvent('muadee:toast', { detail: `Bạn chỉ có thể gửi tối đa ${MAX_IMAGES} ảnh mỗi lần.` }));
+      const additions = valid.slice(0, room).map((file) => {
+        const url = URL.createObjectURL(file);
+        imageUrlsRef.current.add(url);
+        return { file, url };
+      });
+      return [...current, ...additions];
+    });
   }
 
   function removeImage(index: number) {
-    setPendingImages((current) => current.filter((_, i) => i !== index));
+    setPendingImages((current) => {
+      const removed = current[index];
+      if (removed) { URL.revokeObjectURL(removed.url); imageUrlsRef.current.delete(removed.url); }
+      return current.filter((_, i) => i !== index);
+    });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -215,7 +242,7 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
           {message.images?.length ? <div className="chat-attachments">{message.images.map((src) => <img key={src} src={src} alt="Ảnh đã gửi" />)}</div> : null}
           <p>{message.content}</p>
           {message.loginRequired && <Link className="chat-login-link" to={`/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`}>Đăng nhập</Link>}
-          {message.products?.length ? <div className="chat-product-list">{message.products.filter((product) => product.status === 'ACTIVE' && product.stock > 0).map((product) => <article className="chat-product-card" key={product.productId}><Link to={`/products/${product.productId}`} onClick={() => setMinimized(true)}><ProductImage src={product.image} alt={product.productName} /></Link><div><Link to={`/products/${product.productId}`} onClick={() => setMinimized(true)}><strong>{product.productName}</strong></Link><small>{product.price.toLocaleString('vi-VN')}đ/{product.unit}</small><button type="button" onClick={() => void addSuggestedProduct(product)}>Thêm vào giỏ</button></div></article>)}</div> : null}
+          {message.products?.length ? <div className="chat-product-list">{message.products.filter((product) => product.status === 'ACTIVE' && product.stock > 0).map((product) => <article className="chat-product-card" key={product.productId}><Link to={`/products/${product.productId}`} onClick={() => setMinimized(true)}><ProductImage src={product.image} alt={product.productName} /></Link><div><Link to={`/products/${product.productId}`} onClick={() => setMinimized(true)}><strong>{product.productName}</strong></Link><small>{product.price.toLocaleString('vi-VN')}đ/{product.unit}</small><Link className="chat-product-detail-link" to={`/products/${product.productId}`} onClick={() => setMinimized(true)}>Xem chi tiết</Link><button type="button" onClick={() => void addSuggestedProduct(product)}>Thêm vào giỏ</button></div></article>)}</div> : null}
           {message.role === 'assistant' && user?.role === 'CUSTOMER' && <div className="chat-message-feedback"><span>Hữu ích?</span><button type="button" aria-label="Câu trả lời hữu ích" disabled={feedbackGiven.includes(message.id)} onClick={() => void sendFeedback(message.id, true)}><ThumbsUp size={13} /></button><button type="button" aria-label="Câu trả lời chưa hữu ích" disabled={feedbackGiven.includes(message.id)} onClick={() => void sendFeedback(message.id, false)}><ThumbsDown size={13} /></button></div>}
           {message.content.includes('có muốn chuyển sang nhân viên') && <button className="inline-handover" type="button" onClick={() => void requestHandover()}>Chuyển nhân viên</button>}
         </div>)}

@@ -27,6 +27,8 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [stores, setStores] = useState<StoreLocation[]>([]);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -48,12 +50,25 @@ export default function ProductDetailPage() {
     if (!product) return;
     activitiesApi.record('VIEW', product.productId).catch(() => undefined);
     let active = true;
+    setSimilarLoading(true);
     productsApi.list({ storeId }).then(async (items) => {
       const alternatives = items.filter((item) => item.productId !== product.productId);
       const suggested = await recommendationsApi.product(storeId, alternatives);
       const combined = [...suggested, ...alternatives.filter((item) => !suggested.some((candidate) => candidate.productId === item.productId))];
       if (active) setRecommendations(combined);
-    }).catch(() => { if (active) setRecommendations([]); });
+      const categoryMatches = alternatives.filter((item) => item.categoryId === product.categoryId);
+      const candidates = categoryMatches.length ? categoryMatches : alternatives;
+      const tokens = product.productName.toLocaleLowerCase('vi').split(/\W+/).filter((word) => word.length > 2);
+      const effectivePrice = product.salePrice ?? product.price;
+      const ranked = candidates.map((item) => {
+        const name = item.productName.toLocaleLowerCase('vi');
+        const sharedWords = tokens.filter((word) => name.includes(word)).length;
+        const otherPrice = item.salePrice ?? item.price;
+        const priceFit = effectivePrice > 0 && otherPrice >= effectivePrice * 0.7 && otherPrice <= effectivePrice * 1.3;
+        return { item, score: (item.categoryId === product.categoryId ? 4 : 0) + sharedWords * 2 + (priceFit ? 1 : 0) };
+      }).sort((a, b) => b.score - a.score || a.item.productName.localeCompare(b.item.productName, 'vi'));
+      if (active) setSimilarProducts(ranked.slice(0, 4).map(({ item }) => item));
+    }).catch(() => { if (active) { setRecommendations([]); setSimilarProducts([]); } }).finally(() => { if (active) setSimilarLoading(false); });
     return () => { active = false; };
   }, [product?.productId, storeId]);
   useEffect(() => {
@@ -107,6 +122,7 @@ export default function ProductDetailPage() {
       </div>
     </section>
     <section className="product-detail-tabs"><div className="product-tab-list" role="tablist" aria-label="Thông tin sản phẩm">{([['description', 'Mô tả'], ['reviews', 'Đánh giá'], ['policy', 'Chính sách giao nhận và đổi trả']] as const).map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={activeTab === key} className={activeTab === key ? 'selected' : ''} onClick={() => setActiveTab(key)}>{label}</button>)}</div><div className="product-tab-content" id="product-reviews" role="tabpanel">{activeTab === 'description' ? <p>{product.description || `Khám phá ${product.productName} được tuyển chọn kỹ lưỡng tại Muadee. Sản phẩm được bảo quản đúng cách để giữ trọn độ tươi ngon.`}</p> : activeTab === 'reviews' ? <ReviewList product={product} /> : <div className="product-policy"><h3>Giao nhận</h3><p>Đặt hàng giao tận nơi hoặc nhận tại cửa hàng. Phí giao hàng được tính theo địa chỉ và hiển thị trước khi xác nhận đơn.</p><h3>Đổi trả</h3><p>Liên hệ chăm sóc khách hàng trong vòng 24 giờ nếu sản phẩm không đảm bảo chất lượng. Muadee sẽ hỗ trợ kiểm tra và xử lý phù hợp.</p></div>}</div></section>
+    <RecommendationSection id="similar-products" title="Sản phẩm tương tự" products={similarProducts} loading={similarLoading} inStockOnly emptyMessage="Chưa tìm thấy sản phẩm tương tự còn hàng. Bạn có thể xem thêm trong danh mục này." onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />
     <RecommendationSection id="product-recommendations" title="Thường mua cùng" eyebrow="KẾT HỢP THÀNH MÓN NGON" products={recommendations.slice(0, 4)} loading={false} onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />
     <RecommendationSection title="Có thể bạn quan tâm" eyebrow="GỢI Ý DÀNH CHO BẠN" products={recommendations.slice(4, 8)} loading={false} onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />
   </div>;
