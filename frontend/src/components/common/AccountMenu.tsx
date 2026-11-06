@@ -47,6 +47,7 @@ export function AccountMenu({ user }: { user: AuthUser }) {
           <Link role="menuitem" to="/profile/vouchers" onClick={() => setOpen(false)}>Voucher của tôi</Link>
           <div className="membership-line">{membership ? `${membership.pointBalance.toLocaleString('vi-VN')} điểm · Hạng ${membership.memberLevel}` : 'Đang tải điểm thành viên...'}</div>
         </> : <Link role="menuitem" to={user.role === 'ADMIN' ? '/admin/dashboard' : '/staff/orders'} onClick={() => setOpen(false)}><Shield size={17} /> Vào trang quản lý</Link>}
+        {user.role === 'ADMIN' && <Link role="menuitem" to="/orders" onClick={() => setOpen(false)}>Đơn hàng của tôi</Link>}
         <button role="menuitem" className="account-logout" type="button" onClick={logout}><LogOut size={17} /> Đăng xuất</button>
       </div>}
     </div>

@@ -8,7 +8,7 @@ import { CartsService } from './carts.service';
 
 @ApiTags('cart')
 @ApiBearerAuth()
-@Roles(Role.CUSTOMER)
+@Roles(Role.CUSTOMER, Role.ADMIN)
 @Controller('cart')
 export class CartsController {
   constructor(private readonly carts: CartsService) {}

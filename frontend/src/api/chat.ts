@@ -60,7 +60,7 @@ export const chatApi = {
     if (storeId) form.append('storeId', storeId);
     return http.post<{ success: true; data: ChatResult }>(`/chat/sessions/${sessionId}/images`, form, { timeout: 240000, headers: { 'Content-Type': 'multipart/form-data' } }).then(unwrapApiResponse);
   },
-  handover: async (sessionId: string): Promise<ChatSession> => {
+  handover: async (sessionId: string, storeId?: string): Promise<ChatSession> => {
     if (isMockEnabled) {
       const next: ChatSession = { sessionId, status: 'HANDED_OVER', agentName: 'Minh Anh' };
       mockSessions.set(sessionId, next);
@@ -75,7 +75,7 @@ export const chatApi = {
       }, 1200);
       return next;
     }
-    return http.post<{ success: true; data: ChatSession }>(`/chat/sessions/${sessionId}/handover`).then(unwrapApiResponse);
+    return http.post<{ success: true; data: ChatSession }>(`/chat/sessions/${sessionId}/handover`, { storeId }).then(unwrapApiResponse);
   },
   poll: async (sessionId: string): Promise<ChatHistory> => {
     if (isMockEnabled) {

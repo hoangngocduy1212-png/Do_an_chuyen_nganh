@@ -20,6 +20,10 @@ export class SendImagesDto {
   @IsOptional() @IsString() storeId?: string;
 }
 
+export class HandoverDto {
+  @IsOptional() @IsString() @IsNotEmpty() storeId?: string;
+}
+
 @ApiTags('chat')
 @ApiBearerAuth()
 @Controller('chat/sessions')
@@ -33,7 +37,7 @@ export class ChatController {
     return this.chat.createSession(user);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Get('my')
   mine(@CurrentUser() user: AuthUser) {
     return this.chat.mine(user);
@@ -77,8 +81,8 @@ export class ChatController {
   @Public()
   @UseGuards(OptionalJwtAuthGuard)
   @Post(':id/handover')
-  handover(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
-    return this.chat.handover(id, user);
+  handover(@Param('id') id: string, @Body() dto: HandoverDto, @CurrentUser() user?: AuthUser) {
+    return this.chat.handover(id, user, dto.storeId);
   }
 }
 

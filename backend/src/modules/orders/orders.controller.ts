@@ -23,13 +23,13 @@ import { BadRequestException } from '@nestjs/common';
 export class OrdersController {
   constructor(private readonly orders: OrdersApiService) {}
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Post('preview')
   preview(@CurrentUser() user: AuthUser, @Body() dto: OrderPreviewDto) {
     return this.orders.preview(user, dto);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Post()
   create(
     @CurrentUser() user: AuthUser,
@@ -42,7 +42,7 @@ export class OrdersController {
     return this.orders.create(user, dto, idempotencyKey.trim());
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Get('my')
   mine(@CurrentUser() user: AuthUser, @Query() query: OrderListQueryDto) {
     return this.orders.mine(user, query);
@@ -66,19 +66,19 @@ export class OrdersController {
     return this.orders.getOne(user, id);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Patch(':id/shipping-info')
   updateShippingInfo(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: ShippingInfoDto) {
     return this.orders.updateShippingInfo(user, id, dto);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Post(':id/cancel')
   cancel(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: CancelOrderDto) {
     return this.orders.cancel(user, id, dto);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Post(':id/return')
   requestReturn(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: ReturnOrderDto) {
     return this.orders.requestReturn(user, id, dto);

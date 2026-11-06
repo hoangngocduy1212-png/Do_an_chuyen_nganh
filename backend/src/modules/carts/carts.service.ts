@@ -1,6 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { HydratedDocument, Model } from 'mongoose';
+import { randomBytes, randomUUID } from 'crypto';
+import { Membership } from '../memberships/schemas/membership.schema';
 import { ErrorCode } from '../../common/constants/error-codes';
 import { CartItem } from '../cart-items/schemas/cart-item.schema';
 import { Customer } from '../customers/schemas/customer.schema';
@@ -33,6 +35,7 @@ export class CartsService {
     @InjectModel(Inventory.name) private readonly inventory: Model<Inventory>,
     @InjectModel(Category.name) private readonly categories: Model<Category>,
     @InjectModel(Store.name) private readonly stores: Model<Store>,
+    @InjectModel(Membership.name) private readonly memberships: Model<Membership>,
   ) {}
 
   async get(userId: string) {
@@ -155,9 +158,15 @@ export class CartsService {
   }
 
   private async getCartForUser(userId: string): Promise<{ cart: HydratedDocument<Cart> }> {
-    const customer = await this.customers.findOne({ userId }).select('customerId').exec();
-    if (!customer) throw new NotFoundException({ code: ErrorCode.CUSTOMER_NOT_FOUND, message: 'Không tìm thấy hồ sơ khách hàng' });
+    const customer = await this.customers.findOneAndUpdate(
+      { userId }, { $setOnInsert: { userId, customerId: randomUUID(), address: '', addresses: [] } }, { new: true, upsert: true, setDefaultsOnInsert: false },
+    ).select('customerId').exec();
     const customerId = customer.customerId;
+    await this.memberships.findOneAndUpdate(
+      { customerId },
+      { $setOnInsert: { customerId, membershipId: randomUUID(), memberCode: `MD${randomBytes(8).toString('hex').toUpperCase()}`, pointBalance: 0, lifetimePoints: 0, memberLevel: 'Th\u01b0\u1eddng' } },
+      { upsert: true, setDefaultsOnInsert: false },
+    ).exec();
     const cart = await this.carts.findOneAndUpdate(
       { customerId },
       { $setOnInsert: { customerId, totalAmount: 0 } },

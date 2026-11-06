@@ -9,6 +9,7 @@ import { CartsController } from './carts.controller';
 import { CartsService } from './carts.service';
 import { Category, CategorySchema } from '../categories/schemas/category.schema';
 import { Store, StoreSchema } from '../stores/schemas/store.schema';
+import { Membership, MembershipSchema } from '../memberships/schemas/membership.schema';
 
 @Module({
   imports: [MongooseModule.forFeature([
@@ -19,6 +20,7 @@ import { Store, StoreSchema } from '../stores/schemas/store.schema';
     { name: Inventory.name, schema: InventorySchema },
     { name: Category.name, schema: CategorySchema },
     { name: Store.name, schema: StoreSchema },
+    { name: Membership.name, schema: MembershipSchema },
   ])],
   controllers: [CartsController],
   providers: [CartsService],

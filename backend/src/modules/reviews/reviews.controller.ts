@@ -19,13 +19,13 @@ export class ReviewsController {
     return this.reviews.forProduct(productId, query.page, query.limit);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Get('reviews/my')
   mine(@CurrentUser() user: AuthUser, @Query() query: MyReviewsQueryDto) {
     return this.reviews.mine(user.userId, query.status);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Post('reviews')
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateReviewDto) {
     return this.reviews.create(user.userId, dto);

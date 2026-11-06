@@ -83,7 +83,7 @@ export default function ProductDetailPage() {
 
   async function submitCart(action: 'add' | 'buy') {
     if (!product || soldOut || adding) return;
-    if (user?.role !== 'CUSTOMER') {
+    if (user?.role !== 'CUSTOMER' && user?.role !== 'ADMIN') {
       localStorage.setItem('muadee-pending-cart-product', product.productId);
       localStorage.setItem('muadee-pending-cart-action', action);
       setTabAction(action);
