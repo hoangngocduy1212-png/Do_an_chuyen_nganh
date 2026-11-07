@@ -18,13 +18,16 @@ import { cartStore } from '../../store/cartStore';
 import { checkoutStore, useCheckout } from '../../store/checkoutStore';
 import { useStoreSelection } from '../../store/storeSelectionStore';
 import { formatMoney } from '../../utils/money';
+import { useAuth } from '../../store/AuthContext';
 
 export default function CartPage() {
   const { storeId } = useStoreSelection();
+  const { user } = useAuth();
   const checkout = useCheckout();
   const [items, setItems] = useState<CartItem[]>([]);
   const [stores, setStores] = useState<StoreLocation[]>([]);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [suggestionKind, setSuggestionKind] = useState<'related' | 'personalized' | 'popular'>('popular');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -34,6 +37,8 @@ export default function CartPage() {
   const count = availableItems.reduce((sum, item) => sum + item.quantity, 0);
   const weighted = availableItems.some((item) => item.product.unit === 'kg');
   const checkoutEnabled = availableItems.length > 0;
+  const cartProductIds = items.map((item) => item.product.productId);
+  const recommendationKey = cartProductIds.join('|');
 
   const loadCart = useCallback(async () => {
     setLoading(true); setError(false);
@@ -48,9 +53,18 @@ export default function CartPage() {
 
   useEffect(() => { void loadCart(); }, [loadCart]);
   useEffect(() => {
-    if (items.length) return;
-    productsApi.list({ storeId }).then((products) => recommendationsApi.product(storeId, products)).then(setSuggestions).catch(() => setSuggestions([]));
-  }, [items.length, storeId]);
+    let active = true;
+    productsApi.list({ storeId, limit: 50 }).then(async (products) => {
+      const profile = await recommendationsApi.home(storeId, user?.role === 'CUSTOMER' ? user.userId : undefined, products);
+      const personalizedOrPopular = profile.personalized.length ? profile.personalized : profile.bestSellers;
+      const related = cartProductIds[0] ? await recommendationsApi.product(storeId, products, cartProductIds[0]) : [];
+      const preferred = related.length ? related : personalizedOrPopular;
+      if (active) setSuggestionKind(related.length ? 'related' : profile.personalized.length ? 'personalized' : 'popular');
+      const inCart = new Set(cartProductIds);
+      return preferred.filter((product) => !inCart.has(product.productId) && product.stock > 0).slice(0, 8);
+    }).then((result) => { if (active) setSuggestions(result); }).catch(() => { if (active) setSuggestions([]); });
+    return () => { active = false; };
+  }, [recommendationKey, storeId, user?.role, user?.userId]);
 
   const updateQuantity = useCallback(async (item: CartItem, quantity: number) => {
     const previous = items.find((line) => line.itemId === item.itemId)?.quantity ?? item.quantity;
@@ -79,7 +93,8 @@ export default function CartPage() {
   return <div className="customer-shell cart-page">
     <Breadcrumb items={[{ label: 'Giỏ hàng' }]} />
     <header className="cart-page-heading"><div><span className="section-eyebrow">MUA SẮM CỦA BẠN</span><h1>Giỏ hàng</h1><p>Giỏ hàng tại <strong>{storeName}</strong></p></div>{items.length > 0 && <button className="cart-clear-button" type="button" onClick={() => setConfirmClear(true)}>Xóa toàn bộ giỏ</button>}</header>
-    {loading ? <div className="cart-loading" aria-label="Đang tải giỏ hàng"><i /><i /><i /></div> : error ? <div className="listing-message" role="alert"><strong>Không tải được giỏ hàng</strong><p>Vui lòng thử tải lại để kiểm tra các sản phẩm.</p><button type="button" onClick={() => void loadCart()}>Thử lại</button></div> : items.length === 0 ? <><section className="cart-empty"><span><ShoppingBasket size={31} /></span><h2>Giỏ hàng của bạn đang trống</h2><p>Chọn những món tươi ngon cho bữa ăn hôm nay.</p><Link to="/products">Tiếp tục mua sắm <ArrowRight size={16} /></Link></section><RecommendationSection title="Có thể bạn quan tâm" eyebrow="GỢI Ý CHO BẠN" products={suggestions} loading={false} onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} /></> : <div className="cart-layout"><section className="cart-items" aria-label="Sản phẩm trong giỏ"><div className="cart-items-heading"><span>Sản phẩm</span><span>Số lượng</span><span>Thành tiền</span></div><AnimatePresence initial={false}>{items.map((item) => <CartItemRow key={item.itemId} item={item} onQuantity={(quantity) => void updateQuantity(item, quantity)} onRemove={() => void removeItem(item)} />)}</AnimatePresence>{items.every((item) => (item.stock ?? item.product.stock) <= 0) && <p className="cart-all-unavailable">Sản phẩm trong giỏ đã hết hàng tại cửa hàng này. Hãy đổi cửa hàng hoặc tiếp tục mua sắm.</p>}</section><CartSummary count={summaryCount} subtotal={subtotal} discount={checkout.discountAmount} voucher={checkout.voucherCode ? { code: checkout.voucherCode, discount: checkout.discountAmount } : undefined} weighed={weighted} checkoutEnabled={checkoutEnabled} onVoucher={(code, discount) => checkoutStore.applyVoucher(code, discount)} onRemoveVoucher={() => checkoutStore.clearVoucher()} /></div>}
+    {loading ? <div className="cart-loading" aria-label="Đang tải giỏ hàng"><i /><i /><i /></div> : error ? <div className="listing-message" role="alert"><strong>Không tải được giỏ hàng</strong><p>Vui lòng thử tải lại để kiểm tra các sản phẩm.</p><button type="button" onClick={() => void loadCart()}>Thử lại</button></div> : items.length === 0 ? <section className="cart-empty"><span><ShoppingBasket size={31} /></span><h2>Giỏ hàng của bạn đang trống</h2><p>Chọn những món tươi ngon cho bữa ăn hôm nay.</p><Link to="/products">Tiếp tục mua sắm <ArrowRight size={16} /></Link></section> : <div className="cart-layout"><section className="cart-items" aria-label="Sản phẩm trong giỏ"><div className="cart-items-heading"><span>Sản phẩm</span><span>Số lượng</span><span>Thành tiền</span></div><AnimatePresence initial={false}>{items.map((item) => <CartItemRow key={item.itemId} item={item} onQuantity={(quantity) => void updateQuantity(item, quantity)} onRemove={() => void removeItem(item)} />)}</AnimatePresence>{items.every((item) => (item.stock ?? item.product.stock) <= 0) && <p className="cart-all-unavailable">Sản phẩm trong giỏ đã hết hàng tại cửa hàng này. Hãy đổi cửa hàng hoặc tiếp tục mua sắm.</p>}</section><CartSummary count={summaryCount} subtotal={subtotal} discount={checkout.discountAmount} voucher={checkout.voucherCode ? { code: checkout.voucherCode, discount: checkout.discountAmount } : undefined} weighed={weighted} checkoutEnabled={checkoutEnabled} onVoucher={(code, discount) => checkoutStore.applyVoucher(code, discount)} onRemoveVoucher={() => checkoutStore.clearVoucher()} /></div>}
+    {!loading && !error && <RecommendationSection title={suggestionKind === 'related' ? 'Có thể mua cùng' : suggestionKind === 'personalized' ? 'Dành riêng cho bạn' : 'Bán chạy tại cửa hàng'} eyebrow={suggestionKind === 'related' ? 'GỢI Ý THEO GIỎ HÀNG' : suggestionKind === 'personalized' ? 'DỰA TRÊN LỊCH SỬ CỦA BẠN' : 'ĐƯỢC NHIỀU KHÁCH CHỌN'} products={suggestions} loading={false} inStockOnly onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />}
     <ConfirmDialog open={confirmClear} title="Xóa toàn bộ giỏ hàng?" description="Tất cả sản phẩm trong giỏ sẽ bị xóa." confirmLabel="Xóa giỏ hàng" danger onCancel={() => setConfirmClear(false)} onConfirm={clearCart} />
     {items.length > 0 && <p className="cart-bottom-note">Tổng tạm tính {formatMoney(subtotal)} trước khi áp dụng phí vận chuyển.</p>}
   </div>;

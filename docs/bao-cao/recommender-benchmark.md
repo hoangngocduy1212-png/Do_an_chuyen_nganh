@@ -2,7 +2,7 @@
 
 ## Phạm vi
 
-Phần này chuẩn hóa Online Retail II, chia dữ liệu theo thời gian, so sánh Popularity, ItemKNN, BPR-MF và LightGCN, đồng thời đánh giá khách mới và sản phẩm mới. Kết quả benchmark có thể xem tại trang **Nghiên cứu recommender** của web (`/recommender-lab`). Trang sản phẩm chạy recommender content-based của ứng dụng; các mô hình collaborative bên dưới là benchmark ngoại tuyến và chưa được huấn luyện trên catalog Muadee.
+Phần này chuẩn hóa Online Retail II, chia dữ liệu theo thời gian, so sánh Popularity, ItemKNN, BPR-MF và LightGCN, đồng thời đánh giá khách mới và sản phẩm mới. Kết quả benchmark được lưu trong báo cáo/metrics; giao diện người mua chỉ hiển thị gợi ý sản phẩm phù hợp, không hiển thị công cụ nghiên cứu. Các mô hình collaborative bên dưới là benchmark ngoại tuyến và chưa được huấn luyện trên catalog Muadee.
 
 ## Dataset và tiền xử lý
 
@@ -66,8 +66,8 @@ cd C:\dacn_hk7\Do_an_chuyen_nganh\ai-service
 .venv\Scripts\python.exe -m app.ml.training.recommender.benchmark --data app/data/eval/online_retail_ii.csv --output app/data/eval/recommender_full --k 10 --epochs 15
 ```
 
-Để kiểm thử trên giao diện, chạy backend, AI service và frontend chế độ API thật; mở `http://localhost:5173/recommender-lab`. Chọn **Đang xem một sản phẩm** để chạy content-based trên catalog/tồn kho hiện tại, hoặc **Khách mới (cold-start)** để xem fallback bán chạy. Bảng trên trang cho phép chuyển giữa tổng thể, warm-item, cold-user và cold-item.
+Trên giao diện người mua, recommender xuất hiện tự nhiên tại trang chủ (**Có thể bạn quan tâm**, **Bán chạy**), trang danh mục, chi tiết sản phẩm (**Sản phẩm tương tự**, **Sản phẩm bán chạy**) và giỏ hàng (**Có thể mua cùng**). Khách đã đăng nhập nhận gợi ý từ lịch sử xem, thêm giỏ và đơn hàng; khách mới nhận bán chạy tại cửa hàng đang chọn. Các bảng benchmark và cold-start chỉ nằm trong tài liệu nghiên cứu.
 
 ## Giới hạn
 
-Dataset UCI dùng SKU/khách hàng của một nhà bán lẻ khác; không ánh xạ trực tiếp sang sản phẩm Muadee. Vì vậy benchmark ngoại tuyến dùng để so sánh thuật toán, còn danh sách thử trên web dùng database của project và content-based/Popularity. Cần chạy nhiều seed và báo cáo mean ± standard deviation trước khi kết luận học thuật cuối cùng. Nên dùng validation để chọn siêu tham số rồi chỉ đánh giá test một lần với cấu hình khóa.
+Dataset UCI dùng SKU/khách hàng của một nhà bán lẻ khác; không ánh xạ trực tiếp sang sản phẩm Muadee. Benchmark ngoại tuyến dùng để so sánh thuật toán; giao diện project tạo danh sách từ catalog/tồn kho Muadee, cá nhân hóa theo hoạt động khách hàng và dùng content-based/Popularity khi cần. Cần chạy nhiều seed và báo cáo mean ± standard deviation trước khi kết luận học thuật cuối cùng. Nên dùng validation để chọn siêu tham số rồi chỉ đánh giá test một lần với cấu hình khóa.
