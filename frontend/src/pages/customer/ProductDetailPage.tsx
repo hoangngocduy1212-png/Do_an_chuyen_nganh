@@ -53,9 +53,11 @@ export default function ProductDetailPage() {
     setSimilarLoading(true);
     productsApi.list({ storeId }).then(async (items) => {
       const alternatives = items.filter((item) => item.productId !== product.productId);
-      const suggested = await recommendationsApi.product(storeId, alternatives);
-      const combined = [...suggested, ...alternatives.filter((item) => !suggested.some((candidate) => candidate.productId === item.productId))];
-      if (active) setRecommendations(combined);
+      const [similarResult, bestSellerResult] = await Promise.all([
+        recommendationsApi.productResult(storeId, alternatives, product.productId),
+        recommendationsApi.productResult(storeId, alternatives),
+      ]);
+      if (active) setRecommendations(bestSellerResult.products);
       const categoryMatches = alternatives.filter((item) => item.categoryId === product.categoryId);
       const candidates = categoryMatches.length ? categoryMatches : alternatives;
       const tokens = product.productName.toLocaleLowerCase('vi').split(/\W+/).filter((word) => word.length > 2);
@@ -67,7 +69,8 @@ export default function ProductDetailPage() {
         const priceFit = effectivePrice > 0 && otherPrice >= effectivePrice * 0.7 && otherPrice <= effectivePrice * 1.3;
         return { item, score: (item.categoryId === product.categoryId ? 4 : 0) + sharedWords * 2 + (priceFit ? 1 : 0) };
       }).sort((a, b) => b.score - a.score || a.item.productName.localeCompare(b.item.productName, 'vi'));
-      if (active) setSimilarProducts(ranked.slice(0, 4).map(({ item }) => item));
+      const contentMatches = similarResult.strategy === 'content-based' ? similarResult.products : [];
+      if (active) setSimilarProducts((contentMatches.length ? contentMatches : ranked.map(({ item }) => item)).slice(0, 4));
     }).catch(() => { if (active) { setRecommendations([]); setSimilarProducts([]); } }).finally(() => { if (active) setSimilarLoading(false); });
     return () => { active = false; };
   }, [product?.productId, storeId]);
@@ -123,7 +126,6 @@ export default function ProductDetailPage() {
     </section>
     <section className="product-detail-tabs"><div className="product-tab-list" role="tablist" aria-label="Thông tin sản phẩm">{([['description', 'Mô tả'], ['reviews', 'Đánh giá'], ['policy', 'Chính sách giao nhận và đổi trả']] as const).map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={activeTab === key} className={activeTab === key ? 'selected' : ''} onClick={() => setActiveTab(key)}>{label}</button>)}</div><div className="product-tab-content" id="product-reviews" role="tabpanel">{activeTab === 'description' ? <p>{product.description || `Khám phá ${product.productName} được tuyển chọn kỹ lưỡng tại Muadee. Sản phẩm được bảo quản đúng cách để giữ trọn độ tươi ngon.`}</p> : activeTab === 'reviews' ? <ReviewList product={product} /> : <div className="product-policy"><h3>Giao nhận</h3><p>Đặt hàng giao tận nơi hoặc nhận tại cửa hàng. Phí giao hàng được tính theo địa chỉ và hiển thị trước khi xác nhận đơn.</p><h3>Đổi trả</h3><p>Liên hệ chăm sóc khách hàng trong vòng 24 giờ nếu sản phẩm không đảm bảo chất lượng. Muadee sẽ hỗ trợ kiểm tra và xử lý phù hợp.</p></div>}</div></section>
     <RecommendationSection id="similar-products" title="Sản phẩm tương tự" products={similarProducts} loading={similarLoading} inStockOnly emptyMessage="Chưa tìm thấy sản phẩm tương tự còn hàng. Bạn có thể xem thêm trong danh mục này." onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />
-    <RecommendationSection id="product-recommendations" title="Thường mua cùng" eyebrow="KẾT HỢP THÀNH MÓN NGON" products={recommendations.slice(0, 4)} loading={false} onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />
-    <RecommendationSection title="Có thể bạn quan tâm" eyebrow="GỢI Ý DÀNH CHO BẠN" products={recommendations.slice(4, 8)} loading={false} onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />
+    <RecommendationSection id="product-recommendations" title="Sản phẩm bán chạy" eyebrow="ĐƯỢC NHIỀU KHÁCH CHỌN" products={recommendations} loading={false} onLoginRequired={() => window.dispatchEvent(new Event('muadee:login-required'))} />
   </div>;
 }

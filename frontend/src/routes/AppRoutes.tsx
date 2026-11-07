@@ -34,6 +34,7 @@ import RewardsPage from '../pages/customer/profile/RewardsPage';
 import ReviewsPage from '../pages/customer/profile/ReviewsPage';
 import SupportHistoryPage from '../pages/customer/profile/SupportHistoryPage';
 import SecurityPage from '../pages/customer/profile/SecurityPage';
+import RecommenderLabPage from '../pages/customer/RecommenderLabPage';
 
 // Them route moi o day. Khu vuc staff/admin duoc chan theo vai tro.
 export function AppRoutes() {
@@ -41,6 +42,7 @@ export function AppRoutes() {
     <Routes>
       <Route element={<CustomerLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/recommender-lab" element={<RecommenderLabPage />} />
         <Route path="/products" element={<ProductListPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
         <Route path="/categories" element={<ProductListPage />} />

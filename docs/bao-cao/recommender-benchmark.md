@@ -1,52 +1,73 @@
 # Nghiên cứu và benchmark hệ gợi ý
 
-## Mục tiêu
+## Phạm vi
 
-Đo lường các phương pháp implicit-feedback cho luồng mua sắm: Popularity, ItemKNN, BPR-MF và LightGCN. Module nằm trong `ai-service/app/ml/training/recommender/`; chưa nối mô hình học được vào API `/recommend`, vốn đang phục vụ TF-IDF/sản phẩm bán chạy.
+Phần này chuẩn hóa Online Retail II, chia dữ liệu theo thời gian, so sánh Popularity, ItemKNN, BPR-MF và LightGCN, đồng thời đánh giá khách mới và sản phẩm mới. Kết quả benchmark có thể xem tại trang **Nghiên cứu recommender** của web (`/recommender-lab`). Trang sản phẩm chạy recommender content-based của ứng dụng; các mô hình collaborative bên dưới là benchmark ngoại tuyến và chưa được huấn luyện trên catalog Muadee.
 
-## Dữ liệu
+## Dataset và tiền xử lý
 
-Dùng [UCI Online Retail II](https://archive.ics.uci.edu/dataset/502/online_retail%2Bii), dữ liệu giao dịch bán lẻ trực tuyến trong hai năm. Bản gốc là workbook `online_retail_II.xlsx`; tải từ trang UCI và lưu cục bộ ngoài Git. Bộ chuẩn hóa giữ khách hàng có mã, SKU, ngày giao dịch và số lượng dương; hóa đơn bắt đầu bằng `C` (hủy/hoàn trả) bị loại. Chỉ gộp các dòng cùng khách hàng/SKU tại cùng thời điểm; các lần mua lặp ở thời điểm khác nhau được giữ nguyên để tránh rò rỉ thời gian. Nhãn test là nhị phân (có mua/không mua); train giữ tần suất lặp: Popularity đếm sự kiện, ItemKNN dùng ma trận tần suất, còn BPR/LightGCN lấy mẫu cặp dương theo số lần xuất hiện.
+Dùng UCI [Online Retail II](https://archive.ics.uci.edu/dataset/502/online_retail%2Bii), gồm hai sheet `Year 2009-2010` và `Year 2010-2011`, từ 01/12/2009 đến 09/12/2011. Bản workbook có 1,067,371 dòng giao dịch. Lưu bản tải về tại `ai-service/app/data/eval/source/online_retail_II.xlsx`; workbook và dữ liệu chuẩn hóa được loại khỏi Git vì kích thước lớn. Dataset thuộc giấy phép CC BY 4.0; cần ghi công UCI và Daqing Chen khi sử dụng.
 
-Seed của ứng dụng tạo 600 đơn từ dữ liệu mô phỏng trong khoảng 60 ngày và chỉ 30 khách hàng; không dùng để kết luận hiệu quả nghiên cứu. Không commit workbook UCI vào Git vì tệp lớn; khi chia sẻ lại dữ liệu/kết quả cần ghi công theo giấy phép CC BY 4.0.
+Pipeline xử lý cả hai sheet. Loại dòng thiếu Customer ID, StockCode hoặc InvoiceDate; loại invoice bắt đầu bằng `C` và quantity không dương. Gộp các dòng cùng customer, SKU và timestamp, giữ các lần mua lặp ở thời điểm khác nhau. Mỗi lần mua theo thời gian là một implicit positive event; quantity được lưu trong cột `strength`, nhưng các metric top-K đánh giá nhãn mua nhị phân.
 
-## Chia dữ liệu và giao thức
+Sau tiền xử lý có **768,830 tương tác**, **5,881 khách hàng**, **4,631 SKU**, trong khoảng `2009-12-01` đến `2011-12-09`.
 
-Sắp xếp theo thời gian toàn cục: 70% mốc thời gian đầu cho train, 10% tiếp theo cho validation, 20% cuối cho test. Tất cả sự kiện cùng timestamp nằm trong cùng partition. Validation hiện được giữ riêng để chọn siêu tham số; kết quả chuẩn của test chỉ nên chạy sau khi cố định cấu hình.
+## Chia dữ liệu theo thời gian
 
-Tại đánh giá, mỗi khách hàng nhận top-K từ catalog đã xuất hiện trong train; sản phẩm đã tương tác trong train bị lọc. Chỉ thị số liệu: Recall@10, NDCG@10, HitRate@10 và catalog coverage. Báo cáo thêm phân nhóm khách hàng cold-start và item warm-start; item mới ở test không nằm trong candidate catalog của mô hình collaborative-only, nên coverage/recall của chúng phản ánh đúng giới hạn cold-item, không phải dự đoán nội dung.
+Sắp xếp timestamp toàn cục; mục tiêu 70/10/20 được tính trên các mốc thời gian duy nhất, và mọi tương tác cùng timestamp luôn ở cùng partition. Vì vậy tỷ lệ số dòng thực tế có thể lệch nhẹ:
 
-## Mô hình
+| Partition | Tỷ lệ | Số tương tác |
+|---|---:|---:|
+| Train | 70% | 521,708 |
+| Validation | 10% | 72,763 |
+| Test | 20% | 174,359 |
 
-- **Popularity:** xếp hạng theo số tương tác trong train; baseline toàn cục, fallback cho khách hàng mới.
-- **ItemKNN:** cosine giữa vector khách hàng × sản phẩm, cộng tương đồng K láng giềng sản phẩm trong lịch sử người dùng.
-- **BPR-MF:** embedding user/item tối ưu pairwise Bayesian Personalized Ranking với negative sampling.
-- **LightGCN:** lan truyền embedding trên đồ thị user-item hai chiều với chuẩn hóa bậc, cộng trung bình embedding các lớp và tối ưu cùng mục tiêu BPR.
+Validation được giữ riêng; lần benchmark này dùng cấu hình cố định trước (không dò hyperparameter trên test): top-10, embedding 32 chiều, 2 lớp LightGCN, 15 epoch và seed 42. Đây là một lần chạy, chưa phải mean ± standard deviation của nhiều seed.
 
-## Kết quả chạy ban đầu
+## Phương pháp và metric
 
-Chạy trên 394,965 tương tác đã chuẩn hóa: train 267,738; validation 42,341; test 84,886. Test có 2,006 người dùng có ít nhất một sản phẩm mới so với train; 595 người dùng chưa xuất hiện ở train. Có 174 SKU lạnh, tương ứng 5,299 tương tác test. BPR và LightGCN dùng 15 epoch, embedding 32 chiều; seed 42. Bảng dưới là kết quả top-10 của một lần chạy, không phải kết luận cuối.
+- **Popularity:** xếp theo số lần tương tác trong train; cũng là fallback cho khách chưa có lịch sử.
+- **ItemKNN:** cosine item-item từ ma trận tương tác khách hàng × SKU; cộng điểm láng giềng từ lịch sử khách.
+- **BPR-MF:** embedding khách/SKU và pairwise Bayesian Personalized Ranking với negative sampling.
+- **LightGCN:** lan truyền embedding trên đồ thị hai phía khách-SKU, tối ưu BPR.
+- Candidate catalog chỉ gồm SKU đã xuất hiện trong train; sản phẩm đã thấy trong train bị loại khỏi danh sách dự đoán.
+- **Recall@10**, **NDCG@10**, **HitRate@10** đo chất lượng xếp hạng; **Coverage** là tỷ lệ candidate catalog được đề xuất.
+
+## Kết quả trên tập test
+
+Metrics đầy đủ, gồm bốn mô hình và các kịch bản, nằm trong [`recommender-metrics.csv`](recommender-metrics.csv); trang web trình bày cùng số liệu này.
 
 | Mô hình | Recall@10 | NDCG@10 | HitRate@10 | Coverage |
 |---|---:|---:|---:|---:|
-| Popularity | 0.0202 | 0.0590 | 0.3425 | 0.0175 |
-| ItemKNN | 0.0264 | 0.0659 | 0.3445 | 0.2245 |
-| BPR-MF | 0.0272 | 0.0667 | 0.3654 | 0.4917 |
-| LightGCN | **0.0344** | **0.0831** | **0.4347** | 0.2604 |
+| Popularity | 0.01597 | 0.05113 | 0.30548 | 0.01866 |
+| ItemKNN | 0.02227 | 0.06326 | 0.36497 | 0.20170 |
+| BPR-MF | 0.02218 | 0.06224 | 0.35628 | **0.54417** |
+| LightGCN | **0.02691** | **0.07381** | **0.40107** | 0.32121 |
 
-Trên warm-item, LightGCN cũng cao nhất (Recall@10 0.0385, NDCG@10 0.0845); trên cold-user, mọi mô hình dùng fallback Popularity và cho cùng kết quả (Recall@10 0.0327). Với cold-item, collaborative-only nhận Recall/NDCG bằng 0 vì candidate catalog chỉ chứa SKU đã có trong train. Đây là hạn chế hiện diện trong giao thức, không chứng minh một giải pháp nội dung sẽ thất bại.
+LightGCN đạt Recall, NDCG và HitRate cao nhất trong lần chạy này; BPR-MF có coverage lớn nhất. Trên warm-item, LightGCN đạt Recall@10 0.03745, NDCG@10 0.07700, HitRate@10 0.40650. Đây là kết quả của một seed và cấu hình đã nêu, không khẳng định mô hình luôn thắng trên dataset khác.
 
-## Chạy
+## Kịch bản cold-start
+
+Trong test có **822 khách chưa xuất hiện trong train** và **394 SKU mới chưa xuất hiện trong train**.
+
+| Mô hình | Kịch bản | Recall@10 | NDCG@10 | HitRate@10 |
+|---|---|---:|---:|---:|
+| Tất cả mô hình | Khách mới | 0.02227 | 0.07838 | 0.42579 |
+| Tất cả mô hình | SKU mới chưa có trong catalog train | 0.00000 | 0.00000 | 0.00000 |
+
+Khách mới được fallback về Popularity nên các mô hình có cùng điểm. Collaborative-only không thể gợi ý SKU hoàn toàn chưa thấy vì SKU đó không tồn tại trong candidate catalog; số 0 là giới hạn của giao thức/model này, không phải bằng chứng rằng content-based cũng thất bại. Dữ liệu trang chủ có thêm gợi ý bán chạy; trên trang chi tiết web dùng metadata nội dung để tìm sản phẩm tương tự.
+
+## Chạy lại pipeline
 
 ```powershell
-cd ai-service
-pip install -r requirements-recommender.txt
-python -m app.ml.training.recommender.prepare_online_retail --source C:\data\online_retail_II.xlsx
-python -m app.ml.training.recommender.benchmark --data app/data/eval/online_retail_ii.csv --output app/data/eval/recommender --k 10 --epochs 15
+cd C:\dacn_hk7\Do_an_chuyen_nganh\ai-service
+.venv\Scripts\python.exe -m pip install -r requirements-recommender.txt
+.venv\Scripts\python.exe -m app.ml.training.recommender.prepare_online_retail --source app/data/eval/source/online_retail_II.xlsx --output app/data/eval/online_retail_ii.csv
+.venv\Scripts\python.exe -m app.ml.training.recommender.benchmark --data app/data/eval/online_retail_ii.csv --output app/data/eval/recommender_full --k 10 --epochs 15
 ```
 
-Kết quả đầy đủ gồm `metrics.csv` và `split_summary.json` trong thư mục dữ liệu cục bộ `ai-service/app/data/eval/recommender/`; không chứa dữ liệu gốc trong Git. Kết quả trong báo cáo là một seed và một cấu hình. Trước khi đưa vào luận văn, chạy nhiều seed, báo cáo mean ± standard deviation, chọn siêu tham số chỉ trên validation, rồi đánh giá test một lần với cấu hình đã khóa. Script chưa tự động dò siêu tham số.
+Để kiểm thử trên giao diện, chạy backend, AI service và frontend chế độ API thật; mở `http://localhost:5173/recommender-lab`. Chọn **Đang xem một sản phẩm** để chạy content-based trên catalog/tồn kho hiện tại, hoặc **Khách mới (cold-start)** để xem fallback bán chạy. Bảng trên trang cho phép chuyển giữa tổng thể, warm-item, cold-user và cold-item.
 
-## Giới hạn và việc tiếp theo
+## Giới hạn
 
-Đây là benchmark ngoại tuyến, không phải kết quả thực nghiệm đã hoàn thành. Item cold-start cần baseline theo metadata (ví dụ category/popular-within-category) hoặc hybrid content model; không được diễn giải collaborative filtering là xử lý được item chưa thấy. Chưa có số liệu để khẳng định mô hình nào tốt hơn. Trước khi dùng báo cáo, cần tải dữ liệu, cài PyTorch, chạy pipeline và kiểm tra kết quả, sau đó cố định config/seed và đánh giá test một lần.
+Dataset UCI dùng SKU/khách hàng của một nhà bán lẻ khác; không ánh xạ trực tiếp sang sản phẩm Muadee. Vì vậy benchmark ngoại tuyến dùng để so sánh thuật toán, còn danh sách thử trên web dùng database của project và content-based/Popularity. Cần chạy nhiều seed và báo cáo mean ± standard deviation trước khi kết luận học thuật cuối cùng. Nên dùng validation để chọn siêu tham số rồi chỉ đánh giá test một lần với cấu hình khóa.

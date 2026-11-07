@@ -18,7 +18,15 @@ export function StoreReceiveSelector() {
   const [pendingStoreId, setPendingStoreId] = useState(selection.storeId);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { storesApi.list().then(setStores).catch(() => setStores([])); }, []);
+  useEffect(() => {
+    storesApi.list().then((items) => {
+      setStores(items);
+      if (items.length && !items.some((store) => store._id === selection.storeId)) {
+        storeSelectionStore.setStore(items[0]._id);
+        setPendingStoreId(items[0]._id);
+      }
+    }).catch(() => setStores([]));
+  }, []);
   useEffect(() => {
     if (user?.role !== 'CUSTOMER' || selection.deliveryAddress) return;
     usersApi.addresses().then((items) => {
