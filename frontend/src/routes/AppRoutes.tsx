@@ -92,6 +92,7 @@ export function AppRoutes() {
         <Route path="employees" element={<AdminCreateEmployeePage />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

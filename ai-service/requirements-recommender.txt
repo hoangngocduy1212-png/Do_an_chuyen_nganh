@@ -1,0 +1,6 @@
+# Optional offline recommender benchmark dependencies (not needed by the API).
+pandas>=2.2
+openpyxl>=3.1
+scikit-learn>=1.5
+scipy>=1.13
+torch>=2.4

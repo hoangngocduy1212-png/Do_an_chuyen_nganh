@@ -3,7 +3,7 @@ from app.services import catalog
 
 
 def recommend(req: RecommendRequest) -> RecommendResponse:
-    """Trang san pham: tuong tu theo noi dung (TF-IDF). Cac vi tri khac / khong co du lieu: ban chay (cold-start)."""
+    """Use item similarity for product context and customer behavior for storefront placements."""
     try:
         if req.productId:
             rows = catalog.similar(req.productId, req.storeId, req.limit)
@@ -11,6 +11,13 @@ def recommend(req: RecommendRequest) -> RecommendResponse:
                 return RecommendResponse(
                     items=[RecommendItem(productId=r["productId"], score=r["score"], reason="similar-content") for r in rows],
                     strategy="content-based",
+                )
+        if req.customerId:
+            rows = catalog.personalized(req.customerId, req.storeId, req.limit)
+            if rows:
+                return RecommendResponse(
+                    items=[RecommendItem(productId=r["productId"], score=r["score"], reason="customer-profile") for r in rows],
+                    strategy="personalized-content",
                 )
         rows = catalog.best_sellers(req.storeId, req.limit)
     except Exception:  # Mongo khong san sang -> backend se dung fallback cua no

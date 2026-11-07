@@ -15,6 +15,7 @@ import type { Category } from '../../types';
 import type { Product } from '../../types/product';
 import type { StoreLocation } from '../../types/store';
 import { useStoreSelection } from '../../store/storeSelectionStore';
+import { useAuth } from '../../store/AuthContext';
 
 const PAGE_SIZE = 20;
 
@@ -27,6 +28,7 @@ function parsePrice(value: string | null) {
 export default function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { storeId } = useStoreSelection();
+  const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [stores, setStores] = useState<StoreLocation[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -94,11 +96,15 @@ export default function ProductListPage() {
   }, [query]);
 
   useEffect(() => {
-    if (!collection || collection === 'deals') return;
+    if (collection === 'deals' || (!collection && !categoryId)) return;
     let active = true;
-    recommendationsApi.product(storeId).then((result) => { if (active) setRecommendations(result); });
+    productsApi.list({ storeId, limit: 50 }).then((available) =>
+      recommendationsApi.home(storeId, user?.role === 'CUSTOMER' ? user.userId : undefined, available),
+    ).then((result) => {
+      if (active) setRecommendations(result.personalized.length ? result.personalized : result.bestSellers);
+    }).catch(() => { if (active) setRecommendations([]); });
     return () => { active = false; };
-  }, [collection, storeId]);
+  }, [categoryId, collection, storeId, user?.role, user?.userId]);
 
   const selectedCategory = categories.find((category) => category._id === categoryId);
   const selectedStoreName = stores.find((store) => store._id === storeId)?.name ?? 'cửa hàng bạn chọn';

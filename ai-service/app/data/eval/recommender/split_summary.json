@@ -1,0 +1,10 @@
+{
+  "train": 521708,
+  "validation": 72763,
+  "test": 174359,
+  "users": 5881,
+  "items": 4631,
+  "cold_users": 822,
+  "cold_items": 394,
+  "k": 10
+}
