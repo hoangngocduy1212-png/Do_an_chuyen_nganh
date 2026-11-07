@@ -268,7 +268,7 @@ export class OrdersApiService {
 
   async updateShippingInfo(user: AuthUser, id: string, dto: ShippingInfoDto) {
     const order = await this.findOrder(id);
-    await this.assertAccess(user, order);
+    await this.assertBuyerAccess(user, order);
     if (order.orderStatus !== 'PENDING') {
       throw new ConflictException({ code: ErrorCode.ORDER_NOT_CANCELLABLE, message: 'Chỉ được sửa thông tin đơn khi đơn đang chờ xử lý' });
     }
@@ -281,8 +281,24 @@ export class OrdersApiService {
   }
 
   async cancel(user: AuthUser, id: string, dto: CancelOrderDto) {
+    return this.cancelOrder(user, id, dto, false);
+  }
+
+  async cancelByStaff(user: AuthUser, id: string, dto: CancelOrderDto) {
+    return this.cancelOrder(user, id, dto, true);
+  }
+
+  private async cancelOrder(user: AuthUser, id: string, dto: CancelOrderDto, byStaff: boolean) {
     const order = await this.findOrder(id);
-    await this.assertAccess(user, order);
+    if (byStaff) {
+      await this.assertStaffStore(user, order);
+      // Không báo đã hoàn tiền khi chưa tích hợp cổng hoàn tiền thực tế.
+      if (order.paidAmount > 0) {
+        throw new ConflictException({ code: ErrorCode.PAYMENT_NOT_SETTLED, message: 'Đơn đã thanh toán cần được xử lý hoàn tiền trước khi hủy' });
+      }
+    } else {
+      await this.assertBuyerAccess(user, order);
+    }
     if (order.orderStatus !== 'PENDING') {
       throw new ConflictException({ code: ErrorCode.ORDER_NOT_CANCELLABLE, message: 'Chỉ được hủy đơn hàng đang chờ xử lý' });
     }
@@ -290,7 +306,7 @@ export class OrdersApiService {
     try {
       await this.runTransaction(session, async () => {
         const changed = await this.orders.findOneAndUpdate(
-          { _id: order._id, orderStatus: 'PENDING' },
+          { _id: order._id, orderStatus: 'PENDING', ...(byStaff ? { paidAmount: 0 } : {}) },
           { $set: { orderStatus: 'CANCELLED', cancelReason: dto.reason }, $unset: { reservationExpiresAt: 1 } },
           { new: true, session },
         ).exec();
@@ -326,7 +342,7 @@ export class OrdersApiService {
 
   async requestReturn(user: AuthUser, id: string, dto: ReturnOrderDto) {
     const order = await this.findOrder(id);
-    await this.assertAccess(user, order);
+    await this.assertBuyerAccess(user, order);
     if (order.orderStatus !== 'DELIVERED') {
       throw new ConflictException({ code: ErrorCode.ORDER_NOT_RETURNABLE, message: 'Chỉ được yêu cầu trả đơn đã giao' });
     }
@@ -566,6 +582,13 @@ export class OrdersApiService {
     const order = await this.orders.findById(id).exec();
     if (!order) throw new NotFoundException({ code: ErrorCode.ORDER_NOT_FOUND, message: 'Không tìm thấy đơn hàng' });
     return order;
+  }
+
+  private async assertBuyerAccess(user: AuthUser, order: Order): Promise<void> {
+    const customer = await this.customers.findOne({ userId: user.userId }).select('customerId').exec();
+    if (!customer || customer.customerId !== order.customerId) {
+      throw new NotFoundException({ code: ErrorCode.ORDER_NOT_FOUND, message: 'Order not found' });
+    }
   }
 
   private async assertAccess(user: AuthUser, order: Order): Promise<void> {

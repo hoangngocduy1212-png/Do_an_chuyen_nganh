@@ -141,7 +141,7 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
     if (!message) return;
     setMessages((current) => [...current, newMessage('user', message)]);
     setValue('');
-    if (message.toLocaleLowerCase('vi').includes('tra cứu đơn hàng') && user?.role !== 'CUSTOMER') {
+    if (message.toLocaleLowerCase('vi').includes('tra cứu đơn hàng') && user?.role !== 'CUSTOMER' && user?.role !== 'ADMIN') {
       setMessages((current) => [...current, newMessage('assistant', 'Bạn cần đăng nhập để tra cứu đơn hàng.', { loginRequired: true })]);
       return;
     }
@@ -200,7 +200,7 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
     setHandoverPending(true);
     setSession((current) => current ? { ...current, status: 'HANDED_OVER' } : current);
     try {
-      const updated = await chatApi.handover(session.sessionId);
+      const updated = await chatApi.handover(session.sessionId, storeId);
       setSession((current) => current ? { ...current, ...updated } : updated);
     } catch {
       setSession((current) => current ? { ...current, status: 'AI_CHATTING' } : current);
@@ -216,7 +216,7 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
   }
 
   async function addSuggestedProduct(product: Product) {
-    if (user?.role !== 'CUSTOMER') {
+    if (user?.role !== 'CUSTOMER' && user?.role !== 'ADMIN') {
       localStorage.setItem('muadee-pending-cart-product', product.productId);
       window.dispatchEvent(new Event('muadee:login-required'));
       return;

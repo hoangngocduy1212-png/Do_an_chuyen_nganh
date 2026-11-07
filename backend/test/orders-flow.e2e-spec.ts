@@ -27,6 +27,14 @@ import { CartsService } from '../src/modules/carts/carts.service';
 import { Customer, CustomerSchema } from '../src/modules/customers/schemas/customer.schema';
 import { Delivery, DeliverySchema } from '../src/modules/deliveries/schemas/delivery.schema';
 import { Employee, EmployeeSchema } from '../src/modules/employees/schemas/employee.schema';
+import { EmployeesController } from '../src/modules/employees/employees.controller';
+import { EmployeesService } from '../src/modules/employees/employees.service';
+import { EmployeeOperationsService } from '../src/modules/employees/employee-operations.service';
+import { Review, ReviewSchema } from '../src/modules/reviews/schemas/review.schema';
+import { ChatSession, ChatSessionSchema } from '../src/modules/chat-sessions/schemas/chat-session.schema';
+import { ChatMessage, ChatMessageSchema } from '../src/modules/chat-messages/schemas/chat-message.schema';
+import { ChatService } from '../src/modules/chat/chat.service';
+import { OrderIssue, OrderIssueSchema } from '../src/modules/employees/schemas/order-issue.schema';
 import { Inventory, InventorySchema } from '../src/modules/inventory/schemas/inventory.schema';
 import { InventoryService } from '../src/modules/inventory/inventory.service';
 import { MembershipLevel, MembershipLevelSchema } from '../src/modules/membership-levels/schemas/membership-level.schema';
@@ -48,12 +56,16 @@ import { Voucher, VoucherSchema } from '../src/modules/vouchers/schemas/voucher.
 import { VouchersService } from '../src/modules/vouchers/vouchers.service';
 
 const CUSTOMER = { userId: 'customer-user', role: Role.CUSTOMER } satisfies AuthUser;
+const ADMIN = { userId: 'admin-user', role: Role.ADMIN } satisfies AuthUser;
 const STAFF = { userId: 'staff-user', role: Role.STAFF, storeId: 'store-1' } satisfies AuthUser;
 const OTHER_STAFF = { userId: 'other-staff-user', role: Role.STAFF, storeId: 'store-2' } satisfies AuthUser;
+const COWORKER = { userId: 'coworker-user', role: Role.STAFF, storeId: 'store-1' } satisfies AuthUser;
 const TEST_USERS: Record<string, AuthUser> = {
   'customer-token': CUSTOMER,
+  'admin-token': ADMIN,
   'staff-token': STAFF,
   'other-staff-token': OTHER_STAFF,
+  'coworker-token': COWORKER,
 };
 
 @Controller('auth')
@@ -94,6 +106,7 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
   let app: INestApplication;
   let server: MongoMemoryServer;
   let connection: Connection;
+  let chatService: ChatService;
   let models: {
     carts: Model<Cart>;
     cartItems: Model<CartItem>;
@@ -113,6 +126,10 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
     employees: Model<Employee>;
     deliveries: Model<Delivery>;
     users: Model<User>;
+    reviews: Model<Review>;
+    chatSessions: Model<ChatSession>;
+    chatMessages: Model<ChatMessage>;
+    orderIssues: Model<OrderIssue>;
   };
 
   beforeAll(async () => {
@@ -137,6 +154,10 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
       employees: connection.model<Employee>(Employee.name, EmployeeSchema),
       deliveries: connection.model<Delivery>(Delivery.name, DeliverySchema),
       users: connection.model<User>(User.name, UserSchema),
+      reviews: connection.model<Review>(Review.name, ReviewSchema),
+      chatSessions: connection.model<ChatSession>(ChatSession.name, ChatSessionSchema),
+      chatMessages: connection.model<ChatMessage>(ChatMessage.name, ChatMessageSchema),
+      orderIssues: connection.model<OrderIssue>(OrderIssue.name, OrderIssueSchema),
     };
 
     const config = {
@@ -192,6 +213,7 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
       models.inventory,
       models.categories,
       models.stores,
+      models.memberships,
     );
     const paymentsService = new PaymentsService(
       connection,
@@ -200,6 +222,14 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
       models.customers,
       config,
     );
+    const employeesService = new EmployeesService(models.employees, models.stores, {
+      getProfile: async (userId: string) => (await models.users.findOne({ userId }).exec())!.toJSON(),
+      updateProfile: async (userId: string, dto: { fullName?: string }) => models.users.updateOne({ userId }, { $set: dto }).exec(),
+    } as never);
+    const employeeOperations = new EmployeeOperationsService(models.employees, models.orders, models.reviews,
+      models.products, models.chatSessions, models.chatMessages, models.orderIssues);
+    chatService = new ChatService({} as never, {} as never, models.chatSessions, models.chatMessages,
+      models.customers, models.orders, models.products, models.employees, models.users, models.stores);
     const reflector = new Reflector();
     const testingModule = await Test.createTestingModule({
       controllers: [
@@ -208,11 +238,16 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
         OrdersController,
         PaymentsController,
         OrderPaymentsController,
+        EmployeesController,
       ],
       providers: [
         { provide: OrdersApiService, useValue: ordersApi },
         { provide: CartsService, useValue: cartsService },
         { provide: PaymentsService, useValue: paymentsService },
+        { provide: EmployeesService, useValue: employeesService },
+        { provide: EmployeeOperationsService, useValue: employeeOperations },
+        { provide: VouchersService, useValue: vouchersService },
+        { provide: InventoryService, useValue: inventoryService },
       ],
     }).compile();
     app = testingModule.createNestApplication();
@@ -230,6 +265,27 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
     await server?.stop();
   });
 
+  it('lets an admin shop with a separate customer profile and preserves staff restrictions', async () => {
+    await models.users.create({ userId: ADMIN.userId, fullName: 'Admin', email: 'admin@example.test', phone: '0900000001', password: 'unused', role: Role.ADMIN });
+    const auth = 'Bearer admin-token';
+    await request(app.getHttpServer()).get('/api/v1/cart').set('Authorization', auth).expect(200);
+    const customer = await models.customers.findOne({ userId: ADMIN.userId }).lean().exec();
+    expect(customer).toBeTruthy();
+    expect(await models.memberships.findOne({ customerId: customer!.customerId }).lean().exec()).toBeTruthy();
+    await request(app.getHttpServer()).post('/api/v1/cart/items').set('Authorization', auth)
+      .send({ productId: 'product-1', quantity: 1, storeId: 'store-1' }).expect(201);
+    await request(app.getHttpServer()).post('/api/v1/orders/preview').set('Authorization', auth)
+      .send({ storeId: 'store-1', receiveMethod: 'PICKUP' }).expect(201);
+    const order = await request(app.getHttpServer()).post('/api/v1/orders').set('Authorization', auth)
+      .set('Idempotency-Key', 'admin-shopping-test')
+      .send({ storeId: 'store-1', receiveMethod: 'PICKUP', paymentMethod: 'CASH' }).expect(201);
+    const mine = await request(app.getHttpServer()).get('/api/v1/orders/my').set('Authorization', auth).expect(200);
+    expect(mine.body.data.some((item: { orderId: string }) => item.orderId === order.body.data.orderId)).toBe(true);
+    await request(app.getHttpServer()).post(`/api/v1/orders/${order.body.data.orderId}/cancel`).set('Authorization', auth)
+      .send({ reason: 'test' }).expect(201);
+    await request(app.getHttpServer()).get('/api/v1/cart').set('Authorization', 'Bearer staff-token').expect(403);
+  });
+
   it('login → add cart → preview → CASH order → staff fulfillment → loyalty points', async () => {
     const login = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -241,6 +297,21 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
       .send({ email: 'staff@example.test', password: 'test-password' })
       .expect(201);
     const staffToken = staffLogin.body.data.accessToken as string;
+
+    const staffProfile = await request(app.getHttpServer())
+      .get('/api/v1/employees/me').set('Authorization', `Bearer ${staffToken}`).expect(200);
+    expect(staffProfile.body.data.employee.storeId).toBe('store-1');
+    expect(staffProfile.body.data.user.password).toBeUndefined();
+    const updatedProfile = await request(app.getHttpServer()).patch('/api/v1/employees/me')
+      .set('Authorization', `Bearer ${staffToken}`).send({ fullName: 'Updated Staff' }).expect(200);
+    expect(updatedProfile.body.data.user.fullName).toBe('Updated Staff');
+    await request(app.getHttpServer()).patch('/api/v1/employees/me')
+      .set('Authorization', `Bearer ${staffToken}`).send({ storeId: 'store-2' }).expect(400);
+    await request(app.getHttpServer()).get('/api/v1/employees/me')
+      .set('Authorization', `Bearer ${customerToken}`).expect(403);
+    const inventory = await request(app.getHttpServer()).get('/api/v1/employees/me/inventory?storeId=store-2')
+      .set('Authorization', `Bearer ${staffToken}`).expect(200);
+    expect(inventory.body.data.every((item: { storeId: string }) => item.storeId === 'store-1')).toBe(true);
 
     await request(app.getHttpServer())
       .post('/api/v1/cart/items')
@@ -262,6 +333,23 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
       .expect(201);
     const orderId = created.body.data.orderId as string;
     expect(created.body.data.orderStatus).toBe('PENDING');
+    await request(app.getHttpServer()).post(`/api/v1/employees/me/orders/${orderId}/issues`)
+      .set('Authorization', 'Bearer other-staff-token').send({ type: 'OUT_OF_STOCK', detail: 'Out of stock' }).expect(404);
+    const issue = await request(app.getHttpServer()).post(`/api/v1/employees/me/orders/${orderId}/issues`)
+      .set('Authorization', `Bearer ${staffToken}`).send({ type: 'OUT_OF_STOCK', detail: 'Out of stock' }).expect(201);
+    expect(issue.body.data.status).toBe('OPEN');
+    await request(app.getHttpServer()).post(`/api/v1/employees/me/issues/${issue.body.data.issueId}/resolve`)
+      .set('Authorization', 'Bearer other-staff-token').expect(404);
+    const resolved = await request(app.getHttpServer()).post(`/api/v1/employees/me/issues/${issue.body.data.issueId}/resolve`)
+      .set('Authorization', `Bearer ${staffToken}`).expect(201);
+    expect(resolved.body.data.status).toBe('RESOLVED');
+    const staffOrders = await request(app.getHttpServer()).get('/api/v1/employees/me/orders?storeId=store-2')
+      .set('Authorization', `Bearer ${staffToken}`).expect(200);
+    expect(staffOrders.body.data.some((item: { orderId: string }) => item.orderId === orderId)).toBe(true);
+    await request(app.getHttpServer()).post(`/api/v1/orders/${orderId}/cancel`)
+      .set('Authorization', 'Bearer admin-token').send({ reason: 'test' }).expect(404);
+    await request(app.getHttpServer()).post('/api/v1/payments')
+      .set('Authorization', 'Bearer admin-token').send({ orderId, paymentMethod: 'TRANSFER' }).expect(404);
     const repeated = await request(app.getHttpServer())
       .post('/api/v1/orders')
       .set('Authorization', `Bearer ${customerToken}`)
@@ -277,13 +365,17 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
       .get(`/api/v1/orders/${orderId}`)
       .set('Authorization', `Bearer ${otherStaffLogin.body.data.accessToken}`)
       .expect(404);
+    await request(app.getHttpServer()).get(`/api/v1/employees/me/orders/${orderId}`)
+      .set('Authorization', `Bearer ${otherStaffLogin.body.data.accessToken}`).expect(404);
+    await request(app.getHttpServer()).post(`/api/v1/employees/me/orders/${orderId}/accept`)
+      .set('Authorization', `Bearer ${otherStaffLogin.body.data.accessToken}`).expect(404);
     await request(app.getHttpServer())
-      .patch(`/api/v1/orders/${orderId}/status`)
+      .patch(`/api/v1/employees/me/orders/${orderId}/status`)
       .set('Authorization', `Bearer ${staffToken}`)
       .send({ orderStatus: 'DELIVERED' })
       .expect(409);
     await request(app.getHttpServer())
-      .post(`/api/v1/orders/${orderId}/accept`)
+      .post(`/api/v1/employees/me/orders/${orderId}/accept`)
       .set('Authorization', `Bearer ${staffToken}`)
       .expect(201);
     await request(app.getHttpServer())
@@ -304,6 +396,20 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
     expect(pointTransactions[0]).toMatchObject({ type: 'EARN', points: 1 });
     expect((await models.orders.findById(orderId).lean().exec())?.paymentStatus).toBe('SUCCESS');
 
+    // Đánh giá chỉ được quản lý bởi nhân viên của cửa hàng xử lý đơn gốc.
+    const review = await models.reviews.create({ customerId: 'customer-1', orderId, productId: 'product-1', rating: 4, comment: 'Test' });
+    await request(app.getHttpServer()).patch(`/api/v1/employees/me/reviews/${review._id}/visibility`)
+      .set('Authorization', 'Bearer other-staff-token').send({ isHidden: true }).expect(404);
+    const reviews = await request(app.getHttpServer()).get('/api/v1/employees/me/reviews')
+      .set('Authorization', `Bearer ${staffToken}`).expect(200);
+    expect(reviews.body.data).toHaveLength(1);
+    await request(app.getHttpServer()).patch(`/api/v1/employees/me/reviews/${review._id}/visibility`)
+      .set('Authorization', `Bearer ${staffToken}`).send({ isHidden: true }).expect(200);
+    expect((await models.products.findOne({ productId: 'product-1' }).lean().exec())?.reviewCount).toBe(0);
+    await request(app.getHttpServer()).patch(`/api/v1/employees/me/reviews/${review._id}/visibility`)
+      .set('Authorization', `Bearer ${staffToken}`).send({ isHidden: false }).expect(200);
+    expect((await models.products.findOne({ productId: 'product-1' }).lean().exec())?.reviewCount).toBe(1);
+
     await request(app.getHttpServer())
       .post('/api/v1/cart/items')
       .set('Authorization', `Bearer ${customerToken}`)
@@ -316,12 +422,54 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
       .send({ storeId: 'store-1', receiveMethod: 'PICKUP', paymentMethod: 'CASH' })
       .expect(201);
     expect((await models.inventory.findOne({ productId: 'product-1' }).lean().exec())?.reservedQuantity).toBe(1);
+    await models.orders.updateOne({ _id: cancelOrder.body.data.orderId }, { $set: { paidAmount: 1000 } }).exec();
+    await request(app.getHttpServer()).post(`/api/v1/employees/me/orders/${cancelOrder.body.data.orderId}/cancel`)
+      .set('Authorization', `Bearer ${staffToken}`).send({ reason: 'test' }).expect(409);
+    await models.orders.updateOne({ _id: cancelOrder.body.data.orderId }, { $set: { paidAmount: 0 } }).exec();
     await request(app.getHttpServer())
-      .post(`/api/v1/orders/${cancelOrder.body.data.orderId}/cancel`)
-      .set('Authorization', `Bearer ${customerToken}`)
+      .post(`/api/v1/employees/me/orders/${cancelOrder.body.data.orderId}/cancel`)
+      .set('Authorization', `Bearer ${staffToken}`)
       .send({ reason: 'Khách đổi ý' })
       .expect(201);
     expect((await models.inventory.findOne({ productId: 'product-1' }).lean().exec())?.reservedQuantity).toBe(0);
+  });
+
+  it('allows staff to claim and answer only support sessions in their store', async () => {
+    await models.employees.create({ userId: COWORKER.userId, employeeCode: 'EMP-COWORKER', employeeRole: 'STAFF', storeId: 'store-1' });
+    const session = await chatService.createSession(CUSTOMER);
+    const sessionId = session.sessionId;
+    await expect(chatService.handover(sessionId, CUSTOMER)).rejects.toMatchObject({ status: 400 });
+    await chatService.handover(sessionId, CUSTOMER, 'store-1');
+    const base = '/api/v1/employees/me/support/sessions';
+    const other = await request(app.getHttpServer()).get(base).set('Authorization', 'Bearer other-staff-token').expect(200);
+    expect(other.body.data).toHaveLength(0);
+    await request(app.getHttpServer()).post(`${base}/${sessionId}/claim`).set('Authorization', 'Bearer other-staff-token').expect(404);
+    await request(app.getHttpServer()).post(`${base}/${sessionId}/claim`).set('Authorization', 'Bearer staff-token').expect(201);
+    await request(app.getHttpServer()).post(`${base}/${sessionId}/claim`).set('Authorization', 'Bearer coworker-token').expect(409);
+    await request(app.getHttpServer()).post(`${base}/${sessionId}/messages`).set('Authorization', 'Bearer coworker-token')
+      .send({ content: 'Hello' }).expect(404);
+    const message = await request(app.getHttpServer()).post(`${base}/${sessionId}/messages`).set('Authorization', 'Bearer staff-token')
+      .send({ content: 'Xin chao' }).expect(201);
+    expect(message.body.data.senderType).toBe('STAFF');
+    expect((await chatService.history(sessionId, CUSTOMER)).messages[0]).toMatchObject({ role: 'staff', content: 'Xin chao' });
+    const history = await request(app.getHttpServer()).get(`${base}/${sessionId}/messages`).set('Authorization', 'Bearer staff-token').expect(200);
+    expect(history.body.data).toHaveLength(1);
+    await request(app.getHttpServer()).post(`${base}/${sessionId}/close`).set('Authorization', 'Bearer staff-token').expect(201);
+    await request(app.getHttpServer()).post(`${base}/${sessionId}/messages`).set('Authorization', 'Bearer staff-token')
+      .send({ content: 'After close' }).expect(404);
+  });
+
+  it('lets staff manage vouchers while rejecting customer access', async () => {
+    const base = '/api/v1/employees/me/vouchers';
+    await request(app.getHttpServer()).get(base).set('Authorization', 'Bearer customer-token').expect(403);
+    const voucher = await request(app.getHttpServer()).post(base).set('Authorization', 'Bearer staff-token').send({
+      code: 'STAFF-TEST', description: 'test', discountValue: 1000,
+      startDate: '2026-01-01T00:00:00.000Z', endDate: '2027-01-01T00:00:00.000Z',
+    }).expect(201);
+    const voucherId = voucher.body.data.voucherId;
+    await request(app.getHttpServer()).patch(`${base}/${voucherId}`).set('Authorization', 'Bearer staff-token')
+      .send({ description: 'updated' }).expect(200);
+    await request(app.getHttpServer()).delete(`${base}/${voucherId}`).set('Authorization', 'Bearer staff-token').expect(200);
   });
 
   it('requires actual weight within the limit and recalculates both additional due and refund amounts', async () => {
@@ -387,7 +535,7 @@ describe('Order checkout and fulfillment flow (e2e)', () => {
     expect(item).toBeTruthy();
 
     await request(app.getHttpServer())
-      .patch(`/api/v1/orders/${orderId}/items/${String(item?._id)}/weight`)
+      .patch(`/api/v1/employees/me/orders/${orderId}/items/${String(item?._id)}/weight`)
       .set('Authorization', `Bearer ${staffToken}`)
       .send({ actualWeight: 1.3 })
       .expect(409);
@@ -442,6 +590,7 @@ async function seedData(models: {
     employeeRole: 'STAFF',
     storeId: 'store-1',
   });
+  await models.employees.create({ userId: OTHER_STAFF.userId, employeeCode: 'EMP-OTHER', employeeRole: 'STAFF', storeId: 'store-2' });
   await models.categories.create({ categoryId: 'category-1', categoryName: 'Thực phẩm' });
   await models.stores.create({
     storeId: 'store-1',

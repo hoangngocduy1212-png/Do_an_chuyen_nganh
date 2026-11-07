@@ -9,6 +9,7 @@ import AdminProductsPage from '../pages/admin/products/AdminProductsPage';
 import AdminVouchersPage from '../pages/admin/vouchers/AdminVouchersPage';
 import AdminInventoryPage from '../pages/admin/inventory/AdminInventoryPage';
 import AdminOrdersPage from '../pages/admin/orders/AdminOrdersPage';
+import AdminCreateEmployeePage from '../pages/admin/employees/AdminCreateEmployeePage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
@@ -46,7 +47,7 @@ export function AppRoutes() {
         <Route path="/categories" element={<ProductListPage />} />
       </Route>
 
-      <Route element={<RequireRole roles={['CUSTOMER']}><CustomerLayout /></RequireRole>}>
+      <Route element={<RequireRole roles={['CUSTOMER', 'ADMIN']}><CustomerLayout /></RequireRole>}>
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/payment/:orderId" element={<PaymentPage />} />
@@ -55,8 +56,8 @@ export function AppRoutes() {
         <Route path="/orders/:id" element={<OrderDetailPage />} />
       </Route>
 
-      <Route element={<RequireRole roles={['CUSTOMER']}><CustomerLayout /></RequireRole>}>
-        <Route element={<RequireRole roles={['CUSTOMER']}><AccountLayout /></RequireRole>}>
+      <Route element={<RequireRole roles={['CUSTOMER', 'ADMIN']}><CustomerLayout /></RequireRole>}>
+        <Route element={<RequireRole roles={['CUSTOMER', 'ADMIN']}><AccountLayout /></RequireRole>}>
           <Route path="/profile" element={<ProfileInfoPage />} />
           <Route path="/profile/addresses" element={<AddressesPage />} />
           <Route path="/profile/rewards" element={<RewardsPage />} />
@@ -88,6 +89,7 @@ export function AppRoutes() {
         <Route path="inventory" element={<AdminInventoryPage />} />
         <Route path="orders/:id" element={<AdminOrdersPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="employees" element={<AdminCreateEmployeePage />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>

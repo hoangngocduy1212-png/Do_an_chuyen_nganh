@@ -50,6 +50,6 @@ import { Inventory, InventorySchema } from '../inventory/schemas/inventory.schem
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersApiService, OrderReservationExpiryService],
-  exports: [OrdersService],
+  exports: [OrdersService, OrdersApiService],
 })
 export class OrdersModule {}

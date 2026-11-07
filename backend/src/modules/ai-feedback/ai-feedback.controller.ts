@@ -36,7 +36,7 @@ export class AiFeedbackService {
 
 @ApiTags('ai-feedback')
 @ApiBearerAuth()
-@Roles(Role.CUSTOMER)
+@Roles(Role.CUSTOMER, Role.ADMIN)
 @Controller('ai-feedback')
 export class AiFeedbackController {
   constructor(private readonly service: AiFeedbackService) {}

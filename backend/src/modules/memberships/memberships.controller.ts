@@ -14,7 +14,7 @@ class TransactionsQueryDto {
 
 @ApiTags('memberships')
 @ApiBearerAuth()
-@Roles(Role.CUSTOMER)
+@Roles(Role.CUSTOMER, Role.ADMIN)
 @Controller('memberships')
 export class MembershipsController {
   constructor(private readonly memberships: MembershipsService) {}

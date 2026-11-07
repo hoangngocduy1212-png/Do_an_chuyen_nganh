@@ -30,7 +30,7 @@ import { PaymentsService } from './payments.service';
 export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreatePaymentDto) {
     return this.payments.create(user, dto);

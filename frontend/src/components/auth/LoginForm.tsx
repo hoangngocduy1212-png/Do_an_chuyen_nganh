@@ -44,9 +44,9 @@ export function LoginForm() {
         role: result.user.role,
       }, result.refreshToken);
       const returnTo = new URLSearchParams(location.search).get('returnTo');
-      const destination = result.user.role === 'ADMIN'
-        ? '/admin/dashboard'
-        : result.user.role === 'STAFF' ? '/staff/orders' : returnTo?.startsWith('/') ? returnTo : '/';
+      const safeReturnTo = returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : undefined;
+      const destination = result.user.role === 'STAFF' ? '/staff/orders'
+        : safeReturnTo ?? (result.user.role === 'ADMIN' ? '/admin/dashboard' : '/');
       navigate(destination);
     } catch (error) {
       if (error instanceof AuthRequestError) {

@@ -9,6 +9,7 @@ import {
   MapPinned,
   PackageSearch,
   TicketPercent,
+  UsersRound,
 } from 'lucide-react';
 import { authSessionApi } from '../api/authSession';
 import { useAuth } from '../store/AuthContext';
@@ -22,6 +23,7 @@ const adminSections = [
   { label: 'Voucher', path: '/admin/vouchers', icon: TicketPercent },
   { label: 'Tồn kho', path: '/admin/inventory', icon: Boxes },
   { label: 'Đơn hàng', path: '/admin/orders', icon: ClipboardList },
+  { label: 'Nhân viên', path: '/admin/employees', icon: UsersRound },
 ];
 
 export function AdminLayout() {

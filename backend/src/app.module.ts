@@ -27,6 +27,7 @@ import { UserActivitiesModule } from './modules/user-activities/user-activities.
 import { AiFeedbackModule } from './modules/ai-feedback/ai-feedback.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { EmployeesModule } from './modules/employees/employees.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ChatModule } from './modules/chat/chat.module';
     AiFeedbackModule,
     RecommendationsModule,
     ChatModule,
+    EmployeesModule,
     // Them module moi (products, orders, ...) vao day
   ],
   controllers: [AppController],

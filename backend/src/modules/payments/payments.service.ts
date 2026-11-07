@@ -31,7 +31,7 @@ export class PaymentsService {
 
   async create(user: AuthUser, dto: CreatePaymentDto) {
     const order = await this.findOrder(dto.orderId);
-    await this.assertAccess(user, order);
+    await this.assertBuyerAccess(user, order);
     if (dto.paymentMethod === 'CASH') {
       throw new BadRequestException({ code: ErrorCode.PAYMENT_METHOD_UNSUPPORTED, message: 'Thanh toán tiền mặt được thu khi nhận hàng, không tạo giao dịch trực tuyến' });
     }
@@ -340,6 +340,13 @@ export class PaymentsService {
     const payment = await this.payments.findById(id).exec();
     if (!payment) throw new NotFoundException({ code: ErrorCode.PAYMENT_NOT_FOUND, message: 'Không tìm thấy giao dịch' });
     return payment;
+  }
+
+  private async assertBuyerAccess(user: AuthUser, order: Order): Promise<void> {
+    const customer = await this.customers.findOne({ userId: user.userId }).select('customerId').exec();
+    if (!customer || customer.customerId !== order.customerId) {
+      throw new NotFoundException({ code: ErrorCode.PAYMENT_NOT_FOUND, message: 'Payment not found' });
+    }
   }
 
   private async assertAccess(user: AuthUser, order: Order): Promise<void> {

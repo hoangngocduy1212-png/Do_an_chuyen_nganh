@@ -17,13 +17,13 @@ export class VouchersController {
     return this.vouchers.findAll();
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Get('available')
   available(@Query() query: AvailableVoucherQueryDto) {
     return this.vouchers.available(query.orderAmount);
   }
 
-  @Roles(Role.CUSTOMER)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @Post('validate')
   async validate(@Body() dto: ValidateVoucherDto) {
     const result = await this.vouchers.validate(dto.code, dto.orderAmount);

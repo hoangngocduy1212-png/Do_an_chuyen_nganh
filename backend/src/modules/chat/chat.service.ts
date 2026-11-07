@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ErrorCode } from '../../common/constants/error-codes';
@@ -13,6 +13,7 @@ import { Order } from '../orders/schemas/order.schema';
 import { Product } from '../products/schemas/product.schema';
 import { RecommendationsService } from '../recommendations/recommendations.service';
 import { User } from '../users/schemas/user.schema';
+import { Store } from '../stores/schemas/store.schema';
 
 const HISTORY_LIMIT = 10;
 const FALLBACK_ANSWER = 'Hiện trợ lý AI chưa phản hồi được. Bạn có thể chuyển sang nhân viên chăm sóc khách hàng để được hỗ trợ.';
@@ -35,6 +36,7 @@ export class ChatService {
     @InjectModel(Product.name) private readonly products: Model<Product>,
     @InjectModel(Employee.name) private readonly employees: Model<Employee>,
     @InjectModel(User.name) private readonly users: Model<User>,
+    @InjectModel(Store.name) private readonly stores: Model<Store>,
   ) {}
 
   async createSession(user?: AuthUser) {
@@ -115,10 +117,17 @@ export class ChatService {
     return { messages: rows.map(toMessageView), status: session.status, agentName: await this.agentName(session.employeeId) };
   }
 
-  async handover(sessionId: string, user?: AuthUser) {
+  async handover(sessionId: string, user?: AuthUser, requestedStoreId?: string) {
     const session = await this.getSession(sessionId, user);
     if (session.status === 'AI_CHATTING') {
-      await this.sessions.updateOne({ _id: session._id }, { $set: { status: 'HANDED_OVER', handoverRequestedAt: new Date() } });
+      // Cần biết cửa hàng để phiên chuyển đúng hàng đợi của nhân viên.
+      const storeId = requestedStoreId || session.storeId;
+      if (!storeId || !await this.stores.exists({ storeId, status: 'ACTIVE' })) {
+        throw new BadRequestException('Vui lòng chọn cửa hàng đang hoạt động trước khi liên hệ nhân viên');
+      }
+      await this.sessions.updateOne({ _id: session._id, status: 'AI_CHATTING' }, {
+        $set: { status: 'HANDED_OVER', storeId, handoverRequestedAt: new Date() },
+      });
     }
     return { sessionId, status: session.status === 'AI_CHATTING' ? 'HANDED_OVER' : session.status, agentName: await this.agentName(session.employeeId) };
   }
@@ -146,6 +155,13 @@ export class ChatService {
       ? await this.sessions.findById(sessionId).lean<SessionDoc>().exec()
       : null;
     if (!session) throw new NotFoundException({ code: ErrorCode.VALIDATION_ERROR, message: 'Không tìm thấy cuộc trò chuyện' });
+    // Nhân viên chỉ đọc phiên ở cửa hàng của mình sau khi đã tiếp nhận phiên đó.
+    if (user?.role === Role.STAFF) {
+      const employee = await this.employees.findOne({ userId: user.userId, storeId: user.storeId }).select('employeeId').lean().exec();
+      if (!employee || !user.storeId || session.storeId !== user.storeId || session.employeeId !== employee.employeeId) {
+        throw new NotFoundException({ code: ErrorCode.VALIDATION_ERROR, message: 'Không tìm thấy cuộc trò chuyện' });
+      }
+    }
     if (session.customerId && user?.role !== Role.ADMIN && user?.role !== Role.STAFF) {
       const customerId = await this.customerId(user);
       if (customerId !== session.customerId) {
@@ -156,7 +172,7 @@ export class ChatService {
   }
 
   private async customerId(user?: AuthUser): Promise<string | undefined> {
-    if (user?.role !== Role.CUSTOMER) return undefined;
+    if (user?.role !== Role.CUSTOMER && user?.role !== Role.ADMIN) return undefined;
     const customer = await this.customers.findOne({ userId: user.userId }).select('customerId').lean().exec();
     return customer?.customerId;
   }

@@ -8,6 +8,7 @@ import { Employee, EmployeeSchema } from '../employees/schemas/employee.schema';
 import { Order, OrderSchema } from '../orders/schemas/order.schema';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { Store, StoreSchema } from '../stores/schemas/store.schema';
 import { RecommendationsModule } from '../recommendations/recommendations.module';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
@@ -24,6 +25,7 @@ import { ChatService } from './chat.service';
       { name: Product.name, schema: ProductSchema },
       { name: Employee.name, schema: EmployeeSchema },
       { name: User.name, schema: UserSchema },
+      { name: Store.name, schema: StoreSchema },
     ]),
   ],
   controllers: [ChatController],

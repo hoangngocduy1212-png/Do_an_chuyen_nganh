@@ -29,7 +29,37 @@ Tài liệu này mô tả các HTTP endpoint đang được đăng ký bởi `ba
 | POST | `/auth/reset-password` | Public | Đặt mật khẩu mới bằng token dùng một lần; HTTP 200. |
 | GET | `/users/me` | JWT | Lấy thông tin user hiện tại. |
 
-Hiện chưa có route đang chạy cho cập nhật hồ sơ/địa chỉ/avatar/mật khẩu, quản trị users hoặc CRUD employees. Những API đó có trong bản thiết kế trước nhưng chưa được expose từ module hiện tại.
+Các route `/users/me` còn hỗ trợ cập nhật hồ sơ, mật khẩu và quản lý địa chỉ. Chưa có API quản trị danh sách người dùng hoặc CRUD nhân viên đầy đủ.
+
+## API dành cho nhân viên
+
+Các route dưới đây yêu cầu JWT có vai trò `STAFF`. Đơn hàng và tồn kho chỉ thuộc cửa hàng trong thông tin đăng nhập của nhân viên. Các route đơn hàng và tồn kho hiện hữu vẫn được hỗ trợ.
+
+| Method | Path | Hành vi |
+|---|---|---|
+| GET | `/employees/me` | Xem thông tin cá nhân, hồ sơ nhân viên và cửa hàng. |
+| PATCH | `/employees/me` | Cập nhật `fullName`, `phoneNumber` hoặc `avatarUrl` của chính mình. |
+| GET | `/employees/me/orders` | Danh sách đơn của cửa hàng, hỗ trợ lọc và phân trang. |
+| GET | `/employees/me/orders/:id` | Xem chi tiết đơn thuộc cửa hàng. |
+| POST | `/employees/me/orders/:id/accept` | Tiếp nhận đơn. |
+| POST | `/employees/me/orders/:id/cancel` | Hủy đơn chưa thanh toán và đang chờ xử lý; body gồm `reason`. |
+| POST | `/employees/me/orders/:id/issues` | Ghi nhận thiếu hàng hoặc thông tin không hợp lệ; body gồm `type`, `detail`. |
+| GET | `/employees/me/issues` | Xem các vấn đề của cửa hàng. |
+| POST | `/employees/me/issues/:id/resolve` | Đánh dấu một vấn đề đã xử lý. |
+| PATCH | `/employees/me/orders/:id/items/:itemId/weight` | Nhập `actualWeight` cho hàng bán theo cân. |
+| PATCH | `/employees/me/orders/:id/status` | Cập nhật `orderStatus` theo chuyển trạng thái hợp lệ. |
+| GET | `/employees/me/inventory` | Xem tồn kho của cửa hàng. |
+| GET | `/employees/me/reviews` | Xem đánh giá thuộc đơn của cửa hàng; hỗ trợ phân trang. |
+| PATCH | `/employees/me/reviews/:id/visibility` | Ẩn/hiện đánh giá; body gồm `isHidden` kiểu boolean. |
+| GET | `/employees/me/support/sessions` | Danh sách hội thoại đang chờ nhân viên của cửa hàng. |
+| POST | `/employees/me/support/sessions/:id/claim` | Tiếp nhận một hội thoại. |
+| GET | `/employees/me/support/sessions/:id/messages` | Xem tin nhắn của hội thoại đã tiếp nhận. |
+| POST | `/employees/me/support/sessions/:id/messages` | Trả lời khách hàng; body gồm `content`. |
+| POST | `/employees/me/support/sessions/:id/close` | Đóng hội thoại đã tiếp nhận. |
+| GET, POST | `/employees/me/vouchers` | Liệt kê hoặc tạo voucher. |
+| PATCH, DELETE | `/employees/me/vouchers/:id` | Cập nhật hoặc xóa voucher. Voucher hiện dùng chung toàn hệ thống. |
+
+Nhân viên quản lý sản phẩm và danh mục bằng các route `/products` và `/categories` hiện có. Xử lý trả đơn dùng route cập nhật trạng thái `RETURNED` khi đơn đã ở trạng thái `RETURNING`. Chưa có tích hợp hoàn tiền qua cổng thanh toán thật.
 
 ## Danh mục, sản phẩm, cửa hàng
 
@@ -67,7 +97,7 @@ Các query được khai báo trong `ProductQueryDto`:
 
 ## Giỏ hàng
 
-Tất cả route yêu cầu role CUSTOMER.
+Tất cả route cho phép role CUSTOMER và ADMIN. ADMIN có hồ sơ mua sắm, giỏ hàng và đơn hàng riêng.
 
 | Method | Path | Hành vi |
 |---|---|---|
@@ -85,8 +115,8 @@ Giỏ gắn với cửa hàng; không thể trộn sản phẩm từ nhiều c�
 | Method | Path | Quyền | Ghi chú |
 |---|---|---|---|
 | GET | `/vouchers` | ADMIN | Liệt kê voucher quản trị. |
-| GET | `/vouchers/available?orderAmount=...` | CUSTOMER | Voucher khả dụng theo giá trị đơn nếu truyền. |
-| POST | `/vouchers/validate` | CUSTOMER | Body gồm `code` và `orderAmount`; trả code và discountAmount. |
+| GET | `/vouchers/available?orderAmount=...` | CUSTOMER, ADMIN | Voucher khả dụng theo giá trị đơn nếu truyền. |
+| POST | `/vouchers/validate` | CUSTOMER, ADMIN | Body gồm `code` và `orderAmount`; trả code và discountAmount. |
 | POST | `/vouchers` | ADMIN | Tạo voucher. |
 | PATCH | `/vouchers/:id` | ADMIN | Cập nhật voucher. |
 | DELETE | `/vouchers/:id` | ADMIN | Xóa voucher. |
@@ -104,14 +134,14 @@ Giỏ gắn với cửa hàng; không thể trộn sản phẩm từ nhiều c�
 
 | Method | Path | Quyền | Ghi chú |
 |---|---|---|---|
-| POST | `/orders/preview` | CUSTOMER | Body nhận `storeId`, `receiveMethod`, tùy chọn `shippingAddress`, `voucherCode`; tính tổng dự kiến. |
-| POST | `/orders` | CUSTOMER | Tạo đơn từ giỏ; bắt buộc header `Idempotency-Key`. Body nhận dữ liệu preview cùng tùy chọn recipient/pickup/note/payment. |
-| GET | `/orders/my` | CUSTOMER | Đơn của khách hiện tại, phân trang/lọc. |
+| POST | `/orders/preview` | CUSTOMER, ADMIN | Body nhận `storeId`, `receiveMethod`, tùy chọn `shippingAddress`, `voucherCode`; tính tổng dự kiến. |
+| POST | `/orders` | CUSTOMER, ADMIN | Tạo đơn từ giỏ; bắt buộc header `Idempotency-Key`. Body nhận dữ liệu preview cùng tùy chọn recipient/pickup/note/payment. |
+| GET | `/orders/my` | CUSTOMER, ADMIN | Đơn của khách hiện tại, phân trang/lọc. |
 | GET | `/orders` | STAFF, ADMIN | Danh sách đơn; STAFF bị giới hạn theo cửa hàng. |
 | GET | `/orders/:id` | CUSTOMER, STAFF, ADMIN | Chi tiết đơn; service xác thực quyền truy cập đơn. |
-| PATCH | `/orders/:id/shipping-info` | CUSTOMER | Sửa thông tin nhận hàng khi trạng thái cho phép. |
-| POST | `/orders/:id/cancel` | CUSTOMER | Hủy đơn khi điều kiện nghiệp vụ cho phép. Body có `reason`. |
-| POST | `/orders/:id/return` | CUSTOMER | Gửi yêu cầu trả hàng; body có `reason`, `description`. |
+| PATCH | `/orders/:id/shipping-info` | CUSTOMER, ADMIN | Sửa thông tin nhận hàng khi trạng thái cho phép. |
+| POST | `/orders/:id/cancel` | CUSTOMER, ADMIN | Hủy đơn khi điều kiện nghiệp vụ cho phép. Body có `reason`. |
+| POST | `/orders/:id/return` | CUSTOMER, ADMIN | Gửi yêu cầu trả hàng; body có `reason`, `description`. |
 | POST | `/orders/:id/accept` | STAFF, ADMIN | Nhận xử lý đơn. |
 | PATCH | `/orders/:id/items/:itemId/weight` | STAFF, ADMIN | Cập nhật khối lượng thực tế hàng cân; body `actualWeight`. |
 | PATCH | `/orders/:id/status` | STAFF, ADMIN | Chuyển trạng thái hợp lệ. |
@@ -122,7 +152,7 @@ Trạng thái có trong DTO: `PENDING`, `PREPARING`, `SHIPPING`, `READY_FOR_PICK
 
 | Method | Path | Quyền | Ghi chú |
 |---|---|---|---|
-| POST | `/payments` | CUSTOMER | Tạo/lấy payment cho đơn. TRANSFER trả dữ liệu QR VietQR; CARD trả URL checkout đã cấu hình; CASH không tạo payment online ở route này. |
+| POST | `/payments` | CUSTOMER, ADMIN | Tạo/lấy payment cho đơn. TRANSFER trả dữ liệu QR VietQR; CARD trả URL checkout đã cấu hình; CASH không tạo payment online ở route này. |
 | GET | `/payments/:id` | CUSTOMER, STAFF, ADMIN | Xem payment sau khi kiểm tra quyền với đơn. |
 | GET | `/orders/:id/payments` | CUSTOMER, STAFF, ADMIN | Lịch sử payment của đơn sau khi kiểm tra quyền. |
 | POST | `/payments/:id/refund` | STAFF, ADMIN | Hoàn một phần/toàn phần payment thành công; yêu cầu reason. |

@@ -3,6 +3,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { CartItem, CartItemSchema } from '../cart-items/schemas/cart-item.schema';
 import { Category, CategorySchema } from '../categories/schemas/category.schema';
 import { Customer, CustomerSchema } from '../customers/schemas/customer.schema';
+import { Membership, MembershipSchema } from '../memberships/schemas/membership.schema';
 import { Inventory, InventorySchema } from '../inventory/schemas/inventory.schema';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { Store, StoreSchema } from '../stores/schemas/store.schema';
@@ -20,6 +21,7 @@ describe('CartsService', () => {
     inventory: Model<Inventory>;
     categories: Model<Category>;
     stores: Model<Store>;
+    memberships: Model<Membership>;
   };
   let service: CartsService;
 
@@ -34,6 +36,7 @@ describe('CartsService', () => {
       inventory: connection.model<Inventory>(Inventory.name, InventorySchema),
       categories: connection.model<Category>(Category.name, CategorySchema),
       stores: connection.model<Store>(Store.name, StoreSchema),
+      memberships: connection.model<Membership>(Membership.name, MembershipSchema),
     };
     service = new CartsService(
       models.carts,
@@ -43,6 +46,7 @@ describe('CartsService', () => {
       models.inventory,
       models.categories,
       models.stores,
+      models.memberships,
     );
   }, 120_000);
 
@@ -60,6 +64,7 @@ describe('CartsService', () => {
       models.inventory.deleteMany({}),
       models.categories.deleteMany({}),
       models.stores.deleteMany({}),
+      models.memberships.deleteMany({}),
     ]);
   });
 
