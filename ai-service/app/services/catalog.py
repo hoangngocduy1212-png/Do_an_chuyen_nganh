@@ -22,6 +22,19 @@ def tokenize(text: str) -> list[str]:
     return words + [f"{a} {b}" for a, b in zip(words, words[1:])]
 
 
+QUERY_STOPWORDS = {
+    "ban", "co", "khong", "toi", "minh", "muon", "mua", "can", "tim", "cho", "xin", "oi", "nhe", "nha", "a",
+    "la", "cua", "va", "voi", "o", "dau", "nao", "gi", "bao", "nhieu", "duoc", "hay", "di", "the", "nay",
+    "shop", "cua hang", "sieu thi", "ben",
+}
+
+
+def query_tokens(text: str) -> list[str]:
+    """Like tokenize() but drops conversational filler so 'ban co ... khong' cannot match product names."""
+    words = [w for w in re.findall(r"[a-z0-9]+", normalize(text)) if w not in QUERY_STOPWORDS]
+    return words + [f"{a} {b}" for a, b in zip(words, words[1:])]
+
+
 def _load() -> list[dict]:
     if time.time() - _cache["at"] < _CACHE_TTL and _cache["docs"]:
         return _cache["docs"]
@@ -95,7 +108,7 @@ def _rank(query_vec: dict, store_id: str | None, limit: int, exclude: set[str] |
 def search(query: str, store_id: str | None, limit: int = 5) -> list[dict]:
     docs = _load()
     idf = _cache.get("idf", {})
-    counts = Counter(t for t in tokenize(query) if t in idf)
+    counts = Counter(t for t in query_tokens(query) if t in idf)
     vec = {t: c * idf[t] for t, c in counts.items()}
     norm = math.sqrt(sum(v * v for v in vec.values())) or 1.0
     return _rank({t: v / norm for t, v in vec.items()}, store_id, limit, min_score=0.05) if docs else []

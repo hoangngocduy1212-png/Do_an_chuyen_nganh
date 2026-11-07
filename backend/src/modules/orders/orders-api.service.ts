@@ -494,7 +494,13 @@ export class OrdersApiService {
           }
           await this.earnPoints(changed, session);
         }
-        if (next === 'RETURNED') await this.adjustPoints(changed, session);
+        if (next === 'RETURNED') {
+          await this.inventoryService.restock(items.map((item) => ({ storeId: order.storeId, productId: item.productId, quantity: item.quantity })), session);
+          for (const item of items) {
+            await this.products.updateOne({ productId: item.productId }, { $inc: { soldCount: -(item.actualWeight ?? item.quantity) } }, { session }).exec();
+          }
+          await this.adjustPoints(changed, session);
+        }
         await changed.save({ session });
       });
     } finally {

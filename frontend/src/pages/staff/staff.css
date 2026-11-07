@@ -1,0 +1,62 @@
+.staff-page { max-width: 1280px; margin: 0 auto; }
+.staff-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+.staff-toolbar select, .staff-toolbar input:not([type="checkbox"]) { min-height: 36px; padding: 0 10px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; font: inherit; font-size: 12px; }
+.staff-table-wrap { overflow-x: auto; border: 1px solid #dce5df; background: #fff; }
+.staff-table { width: 100%; border-collapse: collapse; text-align: left; }
+.staff-table th { padding: 11px 12px; border-bottom: 1px solid #e6ece8; background: #f9fbf9; color: #78877f; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.staff-table td { padding: 11px 12px; border-bottom: 1px solid #edf1ee; color: #435850; font-size: 12px; vertical-align: top; }
+.staff-table tbody tr:last-child td { border-bottom: 0; }
+.staff-row-click { cursor: pointer; }
+.staff-row-click:hover { background: #f5faf6; }
+.staff-state { padding: 36px 12px; text-align: center; color: #78877f; font-size: 12px; }
+.staff-error { margin: 0 0 12px; padding: 10px 12px; border: 1px solid #f0c9c4; border-radius: 4px; background: #fbeeec; color: #a64b40; font-size: 12px; }
+.staff-notice { margin: 0 0 12px; padding: 10px 12px; border: 1px solid #c9e4d6; border-radius: 4px; background: #eaf6ef; color: #28734e; font-size: 12px; }
+.staff-btn { min-height: 32px; padding: 0 12px; border: 1px solid #176f56; border-radius: 4px; background: #176f56; color: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.staff-btn:disabled { opacity: .55; cursor: not-allowed; }
+.staff-btn.secondary { background: #fff; color: #176f56; }
+.staff-btn.danger { border-color: #a64b40; background: #fff; color: #a64b40; }
+.staff-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.staff-pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 12px; color: #71817a; }
+.staff-badge { display: inline-block; padding: 4px 8px; border-radius: 3px; background: #eef2ef; color: #4a5f55; font-size: 11px; font-weight: 700; }
+.staff-badge.warn { background: #fff2dd; color: #9c691c; }
+.staff-badge.ok { background: #e5f4ed; color: #28734e; }
+.staff-badge.bad { background: #f7e9e7; color: #a64b40; }
+.staff-panel { margin-bottom: 14px; padding: 16px; border: 1px solid #dce5df; background: #fff; }
+.staff-panel h2 { margin: 0 0 10px; font-size: 15px; }
+.staff-form { display: grid; gap: 10px; }
+.staff-form label { display: grid; gap: 4px; color: #52635a; font-size: 12px; }
+.staff-form input, .staff-form select, .staff-form textarea { padding: 8px 10px; border: 1px solid #dce5df; border-radius: 4px; font: inherit; font-size: 12px; }
+.staff-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.staff-split { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; }
+.staff-list { display: grid; gap: 8px; align-content: start; }
+.staff-list-item { padding: 10px 12px; border: 1px solid #dce5df; background: #fff; text-align: left; font: inherit; font-size: 12px; cursor: pointer; }
+.staff-list-item.active { border-color: #176f56; background: #f1f8f4; }
+.staff-chat { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; padding: 12px; border: 1px solid #dce5df; background: #fff; }
+.staff-msg { max-width: 75%; padding: 8px 11px; border-radius: 8px; background: #eef2ef; font-size: 12px; white-space: pre-wrap; }
+.staff-msg.staff { align-self: flex-end; background: #176f56; color: #fff; }
+.staff-reply { display: flex; gap: 8px; margin-top: 10px; }
+.staff-reply input { flex: 1; min-height: 36px; padding: 0 10px; border: 1px solid #dce5df; border-radius: 4px; font: inherit; font-size: 12px; }
+@media (max-width: 800px) { .staff-split { grid-template-columns: 1fr; } }
+
+.staff-icon-btn { width: 36px; height: 36px; display: inline-grid; place-items: center; padding: 0; border: 1px solid #dce5df; border-radius: 50%; background: #fff; color: #176f56; cursor: pointer; }
+.staff-icon-btn:hover { background: #f1f8f4; border-color: #176f56; }
+.staff-icon-btn:active svg { transform: rotate(180deg); transition: transform .3s; }
+.staff-check { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; font-size: 12px; cursor: pointer; }
+.staff-check input { width: 15px; height: 15px; margin: 0; accent-color: #176f56; }
+
+.staff-profile-hero { display: flex; align-items: center; gap: 18px; padding: 24px; margin-bottom: 16px; border-radius: 12px; background: linear-gradient(135deg, #176f56, #2c9a76); color: #fff; }
+.staff-profile-avatar { width: 68px; height: 68px; display: grid; place-items: center; flex: none; border: 3px solid rgba(255,255,255,.55); border-radius: 50%; background: rgba(255,255,255,.18); font-size: 28px; font-weight: 800; }
+.staff-profile-avatar { overflow: hidden; }
+.staff-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.staff-profile-hero h2 { margin: 0 0 4px; font-size: 21px; }
+.staff-profile-hero p { margin: 0; font-size: 12px; opacity: .9; }
+.staff-profile-chip { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.2); font-size: 11px; font-weight: 700; }
+.staff-profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.staff-profile-card { padding: 20px; border: 1px solid #dce5df; border-radius: 12px; background: #fff; box-shadow: 0 2px 8px rgba(23,111,86,.05); }
+.staff-profile-card h3 { margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid #edf1ee; color: #19352c; font-size: 14px; }
+.staff-profile-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px dashed #e6ece8; font-size: 12px; }
+.staff-profile-row:last-child { border-bottom: 0; }
+.staff-profile-row span { color: #78877f; }
+.staff-profile-row b { color: #19352c; text-align: right; }
+.staff-profile-card.staff-form input { min-height: 38px; }
+.staff-profile-card .staff-btn { min-height: 38px; padding: 0 18px; border-radius: 6px; }

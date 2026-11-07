@@ -75,6 +75,20 @@ describe('InventoryService concurrent reservations', () => {
     expect(inventory?.reservedQuantity).toBe(0);
   });
 
+  it('restock cộng lại tồn vật lý khi hàng được trả', async () => {
+    await model.create({ storeId: 'store-test', productId: 'product-test', quantity: 3, reservedQuantity: 1 });
+    const session = await connection.startSession();
+    try {
+      await session.withTransaction(() => service.restock([{ storeId: 'store-test', productId: 'product-test', quantity: 2 }], session));
+    } finally {
+      await session.endSession();
+    }
+
+    const inventory = await model.findOne({ storeId: 'store-test', productId: 'product-test' }).lean().exec();
+    expect(inventory?.quantity).toBe(5);
+    expect(inventory?.reservedQuantity).toBe(1);
+  });
+
   it('commit trừ tồn vật lý và lượng đã giữ cùng lúc', async () => {
     await model.create({ storeId: 'store-test', productId: 'product-test', quantity: 5, reservedQuantity: 0 });
     const session = await connection.startSession();

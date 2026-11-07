@@ -1,0 +1,16 @@
+{
+  "availability": {
+    "questions": 12,
+    "accuracy": 1.0
+  },
+  "price": {
+    "questions": 12,
+    "accuracy": 1.0
+  },
+  "no_hallucination": {
+    "questions": 8,
+    "accuracy": 1.0
+  },
+  "vietnamese_rate": 1.0,
+  "avg_seconds": 16.27
+}

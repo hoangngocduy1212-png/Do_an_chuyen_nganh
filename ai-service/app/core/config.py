@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     llm_provider: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
+    llm_base_url: str = "https://api.openai.com/v1"  # co the doi sang endpoint tuong thich OpenAI (Gemini, Groq...)
     ollama_url: str = "http://localhost:11434"
     vision_model: str = "moondream"
     uploads_dir: str = "../backend/uploads"

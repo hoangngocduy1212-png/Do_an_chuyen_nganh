@@ -35,6 +35,14 @@ export interface AiRecommendResponse {
   strategy: string;
 }
 
+export interface AiForecastResult {
+  productId: string;
+  predictedQuantity: number;
+  currentStock: number;
+  alertType: 'SHORTAGE' | 'OVERSTOCK' | 'NORMAL';
+  suggestedQuantity: number;
+}
+
 @Injectable()
 export class AiClientService {
   private readonly logger = new Logger(AiClientService.name);
@@ -47,6 +55,10 @@ export class AiClientService {
 
   recommend(body: AiRecommendRequest): Promise<AiRecommendResponse> {
     return this.post<AiRecommendResponse>('/recommend', body);
+  }
+
+  forecast(body: { storeId: string; periodDays: number }): Promise<{ results: AiForecastResult[] }> {
+    return this.post('/forecast/run', body);
   }
 
   async analyzeImages(files: Array<{ buffer: Buffer; mimetype: string; originalname: string }>, message: string, storeId?: string): Promise<AiImageResponse> {

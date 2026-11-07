@@ -10,7 +10,23 @@ export function AvatarUploader({ value, onChange, name }: { value?: string; onCh
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setError('Vui lòng chọn ảnh JPG, PNG hoặc WebP'); return; }
     if (file.size > 2 * 1024 * 1024) { setError('Ảnh đại diện không được vượt quá 2 MB'); return; }
     const reader = new FileReader();
-    reader.onload = () => onChange(typeof reader.result === 'string' ? reader.result : undefined);
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') return;
+      const image = new Image();
+      image.onload = () => {
+        const size = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext('2d');
+        if (!context) { onChange(reader.result as string); return; }
+        const side = Math.min(image.width, image.height);
+        context.drawImage(image, (image.width - side) / 2, (image.height - side) / 2, side, side, 0, 0, size, size);
+        onChange(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      image.onerror = () => setError('Không đọc được ảnh, vui lòng chọn ảnh khác');
+      image.src = reader.result;
+    };
     reader.readAsDataURL(file);
   }
   return <div className="avatar-uploader">

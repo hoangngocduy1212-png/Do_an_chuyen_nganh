@@ -3,7 +3,7 @@ import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, 
 export class UpdateProfileDto {
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(100) fullName?: string;
   @IsOptional() @IsString() @MaxLength(20) phoneNumber?: string;
-  @IsOptional() @IsString() @MaxLength(500) avatarUrl?: string;
+  @IsOptional() @IsString() @MaxLength(90000) avatarUrl?: string;
 }
 
 export class AddressDto {

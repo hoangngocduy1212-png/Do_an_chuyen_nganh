@@ -38,7 +38,7 @@
 .products-state button { margin-top: 12px; padding: 6px 10px; border: 1px solid #b9d1c5; border-radius: 4px; background: #fff; color: #176f56; font: inherit; font-size: 10px; font-weight: 700; }
 .products-state-error > span { max-width: 500px; margin-inline: auto; }
 .products-empty-icon { width: 37px; height: 37px; display: grid; place-items: center; margin: 0 auto 10px; border-radius: 50%; background: #eaf4ef; color: #4a8b6f; }
-.products-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 2px; color: #71817a; font-size: 10px; }
+.products-pagination { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 14px 2px; color: #71817a; font-size: 10px; }
 .products-pagination > div { display: flex; gap: 6px; }
 .products-pagination button { min-width: 65px; min-height: 32px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; color: #52635a; font: inherit; font-size: 10px; font-weight: 700; }
 .products-pagination button:disabled { cursor: not-allowed; opacity: .45; }

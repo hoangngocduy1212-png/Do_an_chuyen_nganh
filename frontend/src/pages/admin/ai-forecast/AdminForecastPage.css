@@ -1,0 +1,13 @@
+.forecast-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.forecast-card { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; padding: 13px 15px; border: 1px solid #dce5df; border-radius: 4px; background: #fff; color: #52635a; font: inherit; text-align: left; cursor: pointer; }
+.forecast-card svg { grid-row: span 2; }
+.forecast-card strong { font-size: 20px; color: #263d33; }
+.forecast-card span { font-size: 10px; }
+.forecast-card:hover, .forecast-card.active { border-color: #176f56; box-shadow: 0 0 0 3px rgba(23,111,86,.08); }
+.forecast-card.shortage svg { color: #b16a1d; }
+.forecast-card.overstock svg { color: #4a6fa5; }
+.forecast-card.normal svg { color: #28734e; }
+.forecast-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 9px; font-weight: 800; }
+.forecast-badge.shortage { background: #fdf1e0; color: #b16a1d; }
+.forecast-badge.overstock { background: #e8eff9; color: #3f5f91; }
+.forecast-badge.normal { background: #e8f6ee; color: #28734e; }

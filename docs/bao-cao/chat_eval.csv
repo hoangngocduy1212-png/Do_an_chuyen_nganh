@@ -1,0 +1,78 @@
+check,query,passed,vietnamese,seconds,answer
+availability,Mì gói chua cay,True,True,36.84,"Có bán mì gói chua cay giá 5.000đ.
+
+Cà chua 86.000đ, sữa chua có đường 50.000đ."
+price,Mì gói chua cay,True,True,19.75,"- Mì gói chua cay 5000đ.
+- Chuối già 15000đ.
+- Cà chua 86000đ.
+- Sữa chua có đường 50000đ."
+availability,Rau muống,True,True,36.5,"Đây là danh sách các sản phẩm có sẵn:
+
+- Rau muống: 34,000đ
+- Cà chua: 86,000đ
+- Cà rốt: 25,000đ
+- Cải thìa: 12,000đ
+- Bắp cải: 15,000đ"
+price,Rau muống,True,True,26.03,"- Rau muống giá 34.000đ.
+- Chuối già giá 15.000đ.
+- Cà chua giá 86.000đ.
+- Cà rốt giá 25.000đ."
+availability,Cải thìa,True,True,11.86,Có bán cải thìa với giá 12.000đ/kg.
+price,Cải thìa,True,True,14.88,"Cải thìa giá 12.000đ/kg. 
+Chuối già 15.000đ/kg.
+Bắp cải 15.000đ/kg."
+availability,Dầu ăn thực vật,True,True,15.48,"Có bán dầu ăn thực vật, giá 46,000đ. Bạn có nhu cầu về bơ thực vật không?"
+price,Dầu ăn thực vật,True,True,20.67,"- Dầu ăn thực vật giá 46,000đ.
+- Bơ thực vật giá 11,000đ.
+- Chuối già giá 15,000đ."
+availability,Xoài cát,True,True,10.44,Có bán xoài cát giá 55.000đ.
+price,Xoài cát,True,True,11.05,Xoài cát giá 55.000đ.
+availability,Cam sành,True,True,21.64,"Cam sành bạn muốn mua có sẵn trong danh sách, giá 20,000đ/box. 
+
+Nước cam ép giá 46,000đ/ống cũng có trong danh sách."
+price,Cam sành,True,True,14.24,"Cam sành giá 20,000đ. Chuối già 15,000đ. Nước cam ép 46,000đ."
+availability,Gạo thơm ST25,True,True,14.92,"Có, chúng tôi có bán Gạo thơm ST25. Sản phẩm này giá 205.000đ."
+price,Gạo thơm ST25,True,True,12.54,Gạo thơm ST25 giá 205.000đ.
+availability,Cà chua,True,True,35.91,"Tôi có bán cà chua với giá 86,000đ/kg. Sữa chua có đường 50,000đ. Mì gói chua cay 5,000đ. Cà rốt 25,000đ/kg. Cá basa phi lê 32,000đ/kg."
+price,Cà chua,True,True,15.95,"Cà chua 86.000đ/kg.
+Chuối già 15.000đ/kg.
+Mì gói chua cay 5.000đ/ống."
+availability,Nước cam ép,True,True,40.29,"- Nước cam ép: 46,000đ
+- Cam sành: 20,000đ
+- Nước mắm cá cơm: 38,000đ
+- Nước suối tinh khiết Aquafina: 10,000đ
+- Nước khoáng có ga Đảnh Thạnh: 10,000đ"
+price,Nước cam ép,True,True,26.88,"- Nước cam ép giá 46,000đ
+- Chuối già giá 15,000đ
+- Cam sành giá 20,000đ
+- Nước mắm cá cơm giá 38,000đ
+- Nước suối tinh khiết Aquafina giá 10,000đ"
+availability,Sữa chua có đường,True,True,37.64,"- Sữa chua có đường: 50,000đ
+- Sữa tươi TH ít đường: 24,000đ
+- Cà chua: 86,000đ
+- Đường tinh luyện: 30,000đ
+- Mì gói chua cay: 5,000đ"
+price,Sữa chua có đường,True,True,20.57,"Sữa chua có đường giá 50,000đ.
+Sữa tươi TH ít đường giá 24,000đ.
+Cà chua giá 86,000đ.
+Đường tinh luyện giá 30,000đ."
+availability,Cà rốt,True,True,24.02,"Cảm ơn đã đặt câu hỏi, siêu thị Muadee có bán cà rốt. Sản phẩm này hiện có giá 25,000đ/kg."
+price,Cà rốt,True,True,27.85,"Cà rốt giá 25.000 đồng. 
+
+Chuối già giá 15.000 đồng. 
+
+Cà chua giá 86.000 đồng. 
+
+Cá basa phi lê giá 32.000 đồng. 
+
+Cá hồi Na Uy giá 769.000 đồng."
+availability,Phô mai lát,True,True,13.06,"Có, chúng tôi bán phô mai lát. Giá là 77,000đ/kg."
+price,Phô mai lát,True,True,11.56,"Phô mai lát giá 77,000đ."
+no_hallucination,iPhone 15 Pro Max,True,True,0.01,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.
+no_hallucination,laptop Dell XPS,True,True,0.0,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.
+no_hallucination,xe máy Honda Vision,True,True,0.0,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.
+no_hallucination,tai nghe Sony,True,True,0.0,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.
+no_hallucination,máy giặt LG,True,True,0.0,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.
+no_hallucination,vé máy bay đi Đà Nẵng,True,True,0.0,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.
+no_hallucination,giày Nike,True,True,0.0,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.
+no_hallucination,điện thoại Samsung Galaxy,True,True,0.0,Mình chưa tìm thấy sản phẩm phù hợp. Bạn có thể mô tả cụ thể hơn hoặc chuyển sang nhân viên hỗ trợ.

@@ -154,6 +154,16 @@ export class InventoryService {
     }
   }
 
+  async restock(items: InventoryRequest[], session: ClientSession): Promise<void> {
+    for (const item of this.aggregate(items)) {
+      await this.inventoryModel.updateOne(
+        { storeId: item.storeId, productId: item.productId },
+        { $inc: { quantity: item.quantity }, $setOnInsert: { reservedQuantity: 0 } },
+        { session, upsert: true },
+      ).exec();
+    }
+  }
+
   private async decreaseReserved(item: InventoryRequest, session: ClientSession): Promise<void> {
     const result = await this.inventoryModel.updateOne(
       { storeId: item.storeId, productId: item.productId, reservedQuantity: { $gte: item.quantity } },

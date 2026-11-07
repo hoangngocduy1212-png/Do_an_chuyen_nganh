@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+﻿import { Navigate, Route, Routes } from 'react-router-dom';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { CustomerLayout } from '../layouts/CustomerLayout';
 import { StaffLayout } from '../layouts/StaffLayout';
@@ -10,6 +10,7 @@ import AdminVouchersPage from '../pages/admin/vouchers/AdminVouchersPage';
 import AdminInventoryPage from '../pages/admin/inventory/AdminInventoryPage';
 import AdminOrdersPage from '../pages/admin/orders/AdminOrdersPage';
 import AdminCreateEmployeePage from '../pages/admin/employees/AdminCreateEmployeePage';
+import AdminForecastPage from '../pages/admin/ai-forecast/AdminForecastPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
@@ -26,7 +27,13 @@ import PaymentResultPage from '../pages/customer/PaymentResultPage';
 import OrderSuccessPage from '../pages/customer/OrderSuccessPage';
 import CustomerOrdersPage from '../pages/customer/OrdersPage';
 import OrderDetailPage from '../pages/customer/OrderDetailPage';
-import StaffHomePage from '../pages/staff/orders/StaffHomePage';
+import StaffOrdersPage from '../pages/staff/orders/StaffOrdersPage';
+import StaffIssuesPage from '../pages/staff/StaffIssuesPage';
+import StaffInventoryPage from '../pages/staff/StaffInventoryPage';
+import StaffReviewsPage from '../pages/staff/StaffReviewsPage';
+import StaffSupportPage from '../pages/staff/StaffSupportPage';
+import StaffProfilePage from '../pages/staff/StaffProfilePage';
+import StaffVouchersPage from '../pages/staff/StaffVouchersPage';
 import { RequireRole } from './RequireRole';
 import AccountLayout from '../layouts/AccountLayout';
 import ProfileInfoPage from '../pages/customer/profile/ProfileInfoPage';
@@ -74,9 +81,15 @@ export function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      <Route path="/staff" element={<RequireRole roles={['STAFF', 'ADMIN']}><StaffLayout /></RequireRole>}>
-        <Route index element={<StaffHomePage />} />
-        <Route path="orders" element={<StaffHomePage />} />
+      <Route path="/staff" element={<RequireRole roles={['STAFF']}><StaffLayout /></RequireRole>}>
+        <Route index element={<Navigate to="/staff/orders" replace />} />
+        <Route path="orders" element={<StaffOrdersPage />} />
+        <Route path="issues" element={<StaffIssuesPage />} />
+        <Route path="inventory" element={<StaffInventoryPage />} />
+        <Route path="reviews" element={<StaffReviewsPage />} />
+        <Route path="support" element={<StaffSupportPage />} />
+        <Route path="vouchers" element={<StaffVouchersPage />} />
+        <Route path="profile" element={<StaffProfilePage />} />
       </Route>
 
       <Route path="/admin" element={<RequireRole roles={['ADMIN']}><AdminLayout /></RequireRole>}>
@@ -90,6 +103,7 @@ export function AppRoutes() {
         <Route path="orders/:id" element={<AdminOrdersPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
         <Route path="employees" element={<AdminCreateEmployeePage />} />
+        <Route path="forecast" element={<AdminForecastPage />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

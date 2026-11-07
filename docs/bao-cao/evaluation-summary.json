@@ -1,0 +1,42 @@
+{
+  "search": {
+    "products_sampled": 30,
+    "total_queries": 150,
+    "top1": 0.9867,
+    "top5": 1.0,
+    "by_variant": {
+      "exact": {
+        "queries": 30,
+        "top1": 1.0,
+        "top5": 1.0
+      },
+      "first_3_words": {
+        "queries": 30,
+        "top1": 1.0,
+        "top5": 1.0
+      },
+      "last_2_words": {
+        "queries": 30,
+        "top1": 0.9333,
+        "top5": 1.0
+      },
+      "no_accent_lower": {
+        "queries": 30,
+        "top1": 1.0,
+        "top5": 1.0
+      },
+      "typed_query": {
+        "queries": 30,
+        "top1": 1.0,
+        "top5": 1.0
+      }
+    }
+  },
+  "forecast": {
+    "products_with_sales": 30,
+    "horizon_days": 7,
+    "MAE_smoothing": 4.986,
+    "MAE_mean_baseline": 4.32,
+    "MAE_zero_baseline": 5.666
+  }
+}

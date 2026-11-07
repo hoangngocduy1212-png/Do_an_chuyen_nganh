@@ -125,6 +125,23 @@ def describe(data: bytes) -> str:
     prompt = "Describe this image briefly. If it is a grocery product, name the product."
     buf = io.BytesIO()
     _open(data).save(buf, "JPEG", quality=85)
+    encoded = base64.b64encode(buf.getvalue()).decode()
+    if settings.llm_provider.lower() == "openai" and settings.llm_api_key:
+        r = httpx.post(
+            f"{settings.llm_base_url.rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {settings.llm_api_key}"},
+            json={
+                "model": settings.llm_model or "gpt-4o-mini",
+                "max_tokens": 120,
+                "messages": [{"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded}"}},
+                ]}],
+            },
+            timeout=60,
+        )
+        r.raise_for_status()
+        return (r.json()["choices"][0]["message"]["content"] or "").strip()
     body = {
         "model": settings.vision_model,
         "messages": [{"role": "user", "content": prompt, "images": [base64.b64encode(buf.getvalue()).decode()]}],

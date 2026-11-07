@@ -155,13 +155,13 @@ def evaluate(model, train, test, k=10):
     return {f"Recall@{k}":float(np.mean(recalls)) if recalls else 0, f"NDCG@{k}":float(np.mean(ndcgs)) if ndcgs else 0, f"HitRate@{k}":float(np.mean(hits)) if hits else 0, "Coverage":len(recommended)/max(1,len(catalog)), "users":len(recalls)}
 
 
-def run(data: Path, output: Path, k=10, epochs=15):
+def run(data: Path, output: Path, k=10, epochs=15, seed=42):
     events=pd.read_csv(data); events["timestamp"]=pd.to_datetime(events.timestamp,utc=True)
     events=events[["user_id","item_id","timestamp"]].dropna().drop_duplicates(["user_id","item_id","timestamp"])
     events.user_id=events.user_id.astype(str); events.item_id=events.item_id.astype(str)
     split=temporal_split(events); output.mkdir(parents=True,exist_ok=True); rows=[]
     cold_users=set(split.test.user_id)-set(split.train.user_id); cold_items=set(split.test.item_id)-set(split.train.item_id)
-    models=[("Popularity",Popularity()),("ItemKNN",ItemKNN()),("BPR",TorchGraphModel(epochs=epochs)),("LightGCN",TorchGraphModel(graph=True,epochs=epochs))]
+    models=[("Popularity",Popularity()),("ItemKNN",ItemKNN()),("BPR",TorchGraphModel(epochs=epochs,seed=seed)),("LightGCN",TorchGraphModel(graph=True,epochs=epochs,seed=seed))]
     for name,model in models:
         print(f"Fitting {name} on {len(split.train):,} interactions",flush=True)
         model.fit(split.train); metrics=evaluate(model,split.train,split.test,k)
@@ -180,5 +180,22 @@ def run(data: Path, output: Path, k=10, epochs=15):
     print(result.to_string(index=False))
 
 
+def run_seeds(data: Path, output: Path, seeds: list[int], k=10, epochs=15):
+    """Run the benchmark once per seed and write mean/std per model and scenario to metrics_mean_std.csv."""
+    frames = []
+    for seed in seeds:
+        seed_dir = output / f"seed_{seed}"
+        run(data, seed_dir, k, epochs, seed)
+        frame = pd.read_csv(seed_dir / "metrics.csv"); frame["seed"] = seed; frames.append(frame)
+    allruns = pd.concat(frames, ignore_index=True); allruns.to_csv(output / "metrics_all_seeds.csv", index=False)
+    cols = [f"Recall@{k}", f"NDCG@{k}", f"HitRate@{k}", "Coverage"]
+    summary = allruns.groupby(["model", "scenario"])[cols].agg(["mean", "std"])
+    summary.columns = [f"{a}_{b}" for a, b in summary.columns]
+    summary.reset_index().to_csv(output / "metrics_mean_std.csv", index=False)
+    print(summary.to_string())
+
+
 if __name__=="__main__":
-    parser=argparse.ArgumentParser(); parser.add_argument("--data",type=Path,required=True); parser.add_argument("--output",type=Path,default=Path("app/data/eval/recommender")); parser.add_argument("--k",type=int,default=10); parser.add_argument("--epochs",type=int,default=15); args=parser.parse_args(); run(args.data,args.output,args.k,args.epochs)
+    parser=argparse.ArgumentParser(); parser.add_argument("--data",type=Path,required=True); parser.add_argument("--output",type=Path,default=Path("app/data/eval/recommender")); parser.add_argument("--k",type=int,default=10); parser.add_argument("--epochs",type=int,default=15); parser.add_argument("--seeds",type=int,nargs="+",help="run several seeds and report mean/std"); args=parser.parse_args()
+    if args.seeds: run_seeds(args.data,args.output,args.seeds,args.k,args.epochs)
+    else: run(args.data,args.output,args.k,args.epochs)

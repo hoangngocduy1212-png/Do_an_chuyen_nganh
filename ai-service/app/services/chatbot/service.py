@@ -46,9 +46,9 @@ def _llm(req: ChatRequest) -> ChatResponse:
     headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
     model = settings.llm_model or "gpt-4o-mini"
 
-    with httpx.Client(timeout=20) as client:
+    with httpx.Client(timeout=30) as client:
         for _ in range(3):
-            r = client.post("https://api.openai.com/v1/chat/completions", headers=headers,
+            r = client.post(f"{settings.llm_base_url.rstrip('/')}/chat/completions", headers=headers,
                             json={"model": model, "messages": messages, "tools": TOOLS})
             r.raise_for_status()
             msg = r.json()["choices"][0]["message"]

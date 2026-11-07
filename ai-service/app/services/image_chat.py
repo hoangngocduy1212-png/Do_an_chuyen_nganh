@@ -46,7 +46,8 @@ def analyze(images: list[bytes], message: str, store_id: str | None) -> ImageAna
 
 
 def _compose(message: str, infos: list[ImageInfo], listing: str) -> str:
-    if settings.llm_provider.lower() != "ollama":
+    provider = settings.llm_provider.lower()
+    if provider not in ("ollama", "openai") or (provider == "openai" and not settings.llm_api_key):
         return ""
     parts = []
     for n, i in enumerate(infos, 1):
@@ -56,7 +57,17 @@ def _compose(message: str, infos: list[ImageInfo], listing: str) -> str:
         + f"\n\nSản phẩm có trong cửa hàng:\n{listing or '(không có)'}\n\n"
         "Trả lời ngắn gọn bằng tiếng Việt theo yêu cầu của khách. Chỉ giới thiệu sản phẩm trong danh sách, không bịa thêm."
     )
+    system = "Bạn là trợ lý mua sắm của siêu thị Muadee."
     try:
+        if provider == "openai":
+            r = httpx.post(
+                f"{settings.llm_base_url.rstrip('/')}/chat/completions", timeout=60,
+                headers={"Authorization": f"Bearer {settings.llm_api_key}"},
+                json={"model": settings.llm_model or "gpt-4o-mini",
+                      "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]},
+            )
+            r.raise_for_status()
+            return (r.json()["choices"][0]["message"]["content"] or "").strip()
         r = httpx.post(
             f"{settings.ollama_url}/api/chat", timeout=120,
             json={"model": settings.llm_model or "qwen2.5:3b", "stream": False,
