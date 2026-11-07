@@ -19,6 +19,9 @@ venv/
 # Mô hình ML nặng
 ai-service/app/ml/models/*.pkl
 ai-service/app/ml/models/*.joblib
+ai-service/app/data/eval/source/
+ai-service/app/data/eval/online_retail_ii.csv
+ai-service/app/data/eval/recommender/
 
 # Dữ liệu MongoDB local
 mongo-data/
