@@ -63,7 +63,7 @@ Khách mới được fallback về Popularity nên các mô hình có cùng đi
 cd C:\dacn_hk7\Do_an_chuyen_nganh\ai-service
 .venv\Scripts\python.exe -m pip install -r requirements-recommender.txt
 .venv\Scripts\python.exe -m app.ml.training.recommender.prepare_online_retail --source app/data/eval/source/online_retail_II.xlsx --output app/data/eval/online_retail_ii.csv
-.venv\Scripts\python.exe -m app.ml.training.recommender.benchmark --data app/data/eval/online_retail_ii.csv --output app/data/eval/recommender_full --k 10 --epochs 15
+.venv\Scripts\python.exe -m app.ml.training.recommender.benchmark --data app/data/eval/online_retail_ii.csv --output app/data/eval/recommender --k 10 --epochs 15
 ```
 
 Trên giao diện người mua, recommender xuất hiện tự nhiên tại trang chủ (**Có thể bạn quan tâm**, **Bán chạy**), trang danh mục, chi tiết sản phẩm (**Sản phẩm tương tự**, **Sản phẩm bán chạy**) và giỏ hàng (**Có thể mua cùng**). Khách đã đăng nhập nhận gợi ý từ lịch sử xem, thêm giỏ và đơn hàng; khách mới nhận bán chạy tại cửa hàng đang chọn. Các bảng benchmark và cold-start chỉ nằm trong tài liệu nghiên cứu.
