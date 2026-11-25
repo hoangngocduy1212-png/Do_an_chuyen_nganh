@@ -12,16 +12,17 @@ export interface ProductRecommendations {
   products: Product[];
   strategy: string;
 }
+export type RecommendationPlacement = 'product' | 'cart';
 
 const available = (products: Product[]) => products.filter((product) => product.status === 'ACTIVE' && product.stock > 0);
 const mockForStore = (storeId: string) => mockProducts.map((product) => ({ ...product, stock: mockStockByStore[storeId]?.[product.productId] ?? product.stock }));
 const mockBestSellers = (storeId: string) => available(mockForStore(storeId)).slice(0, 4);
 
 export const recommendationsApi = {
-  productResult: async (storeId: string, fallbackProducts: Product[] = [], productId?: string): Promise<ProductRecommendations> => {
+  productResult: async (storeId: string, fallbackProducts: Product[] = [], productId?: string, placement: RecommendationPlacement = 'product'): Promise<ProductRecommendations> => {
     if (isMockEnabled) return { products: available(mockForStore(storeId)).slice(2, 6), strategy: 'mock-popularity' };
     try {
-      const payload = await http.get<{ success: true; data: Array<Product | { productId: string }> | { items?: Array<Product | { productId: string }>; strategy?: string } }>('/recommendations', { params: { placement: 'product', storeId, ...(productId ? { productId } : {}) } }).then(unwrapApiResponse);
+      const payload = await http.get<{ success: true; data: Array<Product | { productId: string }> | { items?: Array<Product | { productId: string }>; strategy?: string } }>('/recommendations', { params: { placement, storeId, ...(productId ? { productId } : {}) } }).then(unwrapApiResponse);
       const items = Array.isArray(payload) ? payload : payload.items ?? [];
       return {
         products: available(items.flatMap((item) => 'status' in item ? [item] : fallbackProducts.filter((product) => product.productId === item.productId))),
@@ -31,8 +32,8 @@ export const recommendationsApi = {
       return { products: available(fallbackProducts).slice(0, 4), strategy: 'best-seller-fallback' };
     }
   },
-  product: async (storeId: string, fallbackProducts: Product[] = [], productId?: string): Promise<Product[]> =>
-    (await recommendationsApi.productResult(storeId, fallbackProducts, productId)).products,
+  product: async (storeId: string, fallbackProducts: Product[] = [], productId?: string, placement: RecommendationPlacement = 'product'): Promise<Product[]> =>
+    (await recommendationsApi.productResult(storeId, fallbackProducts, productId, placement)).products,
   home: async (storeId: string, customerId?: string, fallbackProducts: Product[] = []): Promise<HomeRecommendations> => {
     if (isMockEnabled) {
       if (import.meta.env.VITE_MOCK_RECOMMENDATION_ERROR === 'true') {

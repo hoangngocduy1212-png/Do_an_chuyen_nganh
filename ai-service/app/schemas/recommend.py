@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RecommendRequest(BaseModel):
@@ -8,7 +8,7 @@ class RecommendRequest(BaseModel):
     placement: Literal["home", "product", "cart"] = "home"
     productId: str | None = None
     storeId: str
-    limit: int = 8
+    limit: int = Field(default=8, ge=1, le=50)
 
 
 class RecommendItem(BaseModel):

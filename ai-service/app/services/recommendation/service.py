@@ -3,26 +3,15 @@ from app.services import catalog
 
 
 def recommend(req: RecommendRequest) -> RecommendResponse:
-    """Use item similarity for product context and customer behavior for storefront placements."""
+    """Hybrid collaborative, content and popularity ranking with stock-aware fallback."""
     try:
-        if req.productId:
-            rows = catalog.similar(req.productId, req.storeId, req.limit)
-            if rows:
-                return RecommendResponse(
-                    items=[RecommendItem(productId=r["productId"], score=r["score"], reason="similar-content") for r in rows],
-                    strategy="content-based",
-                )
-        if req.customerId:
-            rows = catalog.personalized(req.customerId, req.storeId, req.limit)
-            if rows:
-                return RecommendResponse(
-                    items=[RecommendItem(productId=r["productId"], score=r["score"], reason="customer-profile") for r in rows],
-                    strategy="personalized-content",
-                )
-        rows = catalog.best_sellers(req.storeId, req.limit)
+        rows, strategy = catalog.recommend_hybrid(
+            customer_id=req.customerId,
+            store_id=req.storeId,
+            limit=req.limit,
+            product_id=req.productId,
+            placement=req.placement,
+        )
     except Exception:  # Mongo khong san sang -> backend se dung fallback cua no
         return RecommendResponse(items=[], strategy="unavailable")
-    return RecommendResponse(
-        items=[RecommendItem(productId=r["productId"], score=r["score"], reason="best-seller") for r in rows],
-        strategy="cold-start-best-seller",
-    )
+    return RecommendResponse(items=[RecommendItem(**row) for row in rows], strategy=strategy)

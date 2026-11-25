@@ -2,13 +2,15 @@ import math
 import re
 import time
 import unicodedata
-from collections import Counter
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta, timezone
 
 from app.db.mongo import get_db
 
 _CACHE_TTL = 300
 _cache: dict = {"at": 0.0, "docs": []}
 _stock_cache: dict[str, tuple[float, set[str]]] = {}
+_purchase_cache: dict = {"at": 0.0, "neighbors": {}, "popularity": Counter()}
 
 
 def normalize(text: str) -> str:
@@ -175,11 +177,65 @@ def similar(product_id: str, store_id: str | None, limit: int = 8) -> list[dict]
     base = next((d for d in _load() if d["productId"] == product_id), None)
     return _rank(base["vec"], store_id, limit, exclude={product_id}) if base else []
 
+def _purchase_signals() -> tuple[dict[str, Counter], Counter]:
+    """Build item-item co-purchase signals from delivered orders, cached briefly."""
+    if time.time() - _purchase_cache["at"] < _CACHE_TTL:
+        return _purchase_cache["neighbors"], _purchase_cache["popularity"]
 
-def personalized(customer_id: str, store_id: str | None, limit: int = 8) -> list[dict]:
-    """Rank in-stock products from a customer's recent views, cart actions and completed orders."""
-    docs = _load()
-    by_id = {doc["productId"]: doc for doc in docs}
+    db = get_db()
+    since = datetime.now(timezone.utc) - timedelta(days=180)
+    orders = list(db["orders"].find(
+        {"orderStatus": "DELIVERED", "createdAt": {"$gte": since}},
+        {"orderId": 1},
+    ).sort("createdAt", -1).limit(10000))
+    order_ids = [order["orderId"] for order in orders if order.get("orderId")]
+    neighbors: dict[str, Counter] = defaultdict(Counter)
+    popularity: Counter = Counter()
+    customer_items: dict[str, Counter] = defaultdict(Counter)
+    for event in db["useractivities"].find(
+        {"productId": {"$type": "string"}, "activityType": {"$in": ["VIEW", "ADD_TO_CART"]}, "createdAt": {"$gte": since}},
+        {"customerId": 1, "productId": 1, "activityType": 1},
+    ):
+        product_id = event["productId"]
+        weight = 3.0 if event.get("activityType") == "ADD_TO_CART" else 1.0
+        popularity[product_id] += weight
+        if event.get("customerId"):
+            customer_items[event["customerId"]][product_id] += weight
+    for review in db["reviews"].find(
+        {"isHidden": {"$ne": True}, "rating": {"$gte": 4}},
+        {"customerId": 1, "productId": 1, "rating": 1},
+    ):
+        product_id = review.get("productId")
+        if not product_id:
+            continue
+        weight = 2.0 * review.get("rating", 4) / 5
+        popularity[product_id] += weight
+        if review.get("customerId"):
+            customer_items[review["customerId"]][product_id] += weight
+    for items in customer_items.values():
+        for product_id, weight in items.items():
+            for related_id, related_weight in items.items():
+                if related_id != product_id:
+                    neighbors[product_id][related_id] += math.sqrt(weight * related_weight)
+    if order_ids:
+        grouped: dict[str, set[str]] = defaultdict(set)
+        for row in db["orderitems"].find(
+            {"orderId": {"$in": order_ids}}, {"orderId": 1, "productId": 1},
+        ):
+            if row.get("orderId") and row.get("productId"):
+                grouped[row["orderId"]].add(row["productId"])
+        for product_ids in grouped.values():
+            for product_id in product_ids:
+                popularity[product_id] += 5
+                for related_id in product_ids:
+                    if related_id != product_id:
+                        neighbors[product_id][related_id] += 1
+
+    _purchase_cache.update(at=time.time(), neighbors=dict(neighbors), popularity=popularity)
+    return _purchase_cache["neighbors"], _purchase_cache["popularity"]
+
+
+def _customer_interests(customer_id: str) -> list[tuple[str, float]]:
     db = get_db()
     interests: list[tuple[str, float]] = []
     activities = list(db["useractivities"].find(
@@ -187,43 +243,138 @@ def personalized(customer_id: str, store_id: str | None, limit: int = 8) -> list
         {"productId": 1, "activityType": 1},
     ).sort("createdAt", -1).limit(80))
     for index, activity in enumerate(activities):
-        base = 3.0 if activity.get("activityType") == "ADD_TO_CART" else 1.0
-        interests.append((activity["productId"], base * (0.985 ** index)))
+        weight = 3.0 if activity.get("activityType") == "ADD_TO_CART" else 1.0
+        interests.append((activity["productId"], weight * (0.985 ** index)))
 
     orders = list(db["orders"].find(
-        {"customerId": customer_id, "orderStatus": {"$in": ["PREPARING", "READY_FOR_PICKUP", "SHIPPING", "DELIVERED"]}},
-        {"orderId": 1},
+        {"customerId": customer_id, "orderStatus": "DELIVERED"}, {"orderId": 1},
     ).sort("createdAt", -1).limit(30))
     order_ids = [order["orderId"] for order in orders if order.get("orderId")]
     if order_ids:
-        purchased = list(db["orderitems"].find({"orderId": {"$in": order_ids}}, {"orderId": 1, "productId": 1}))
         order_rank = {order_id: index for index, order_id in enumerate(order_ids)}
-        for item in purchased:
-            rank = order_rank.get(item.get("orderId"), len(order_rank))
-            if item.get("productId"):
-                interests.append((item["productId"], 5.0 * (0.94 ** rank)))
+        for item in db["orderitems"].find(
+            {"orderId": {"$in": order_ids}}, {"orderId": 1, "productId": 1},
+        ):
+            product_id = item.get("productId")
+            if product_id:
+                rank = order_rank.get(item.get("orderId"), len(order_rank))
+                interests.append((product_id, 5.0 * (0.94 ** rank)))
+    for review in db["reviews"].find(
+        {"customerId": customer_id, "isHidden": {"$ne": True}, "rating": {"$gte": 4}},
+        {"productId": 1, "rating": 1},
+    ).sort("createdAt", -1).limit(30):
+        if review.get("productId"):
+            interests.append((review["productId"], 2.0 * review.get("rating", 4) / 5))
+    return interests
 
-    if not interests:
-        return []
 
-    profile: Counter = Counter()
-    excluded: set[str] = set()
-    for product_id, weight in interests:
-        doc = by_id.get(product_id)
-        if not doc:
-            continue
+def _normalized(values: dict[str, float]) -> dict[str, float]:
+    peak = max(values.values(), default=0.0)
+    if peak <= 0:
+        return {}
+    return {key: value / peak for key, value in values.items()}
+
+
+def recommend_hybrid(customer_id: str | None, store_id: str | None, limit: int = 8,
+                     product_id: str | None = None, placement: str = "home") -> tuple[list[dict], str]:
+    """Blend collaborative purchases, TF-IDF content and popularity; keep cold-start useful."""
+    docs = _load()
+    if not docs:
+        return [], "unavailable"
+    stock = _in_stock(store_id)
+    candidates = [doc for doc in docs if stock is None or doc["productId"] in stock]
+    if not candidates:
+        return [], "no-in-stock-products"
+
+    neighbors, purchase_popularity = _purchase_signals()
+    interests = _customer_interests(customer_id) if customer_id else []
+    if product_id:
+        interests.append((product_id, 5.0))
+    by_id = {doc["productId"]: doc for doc in docs}
+    excluded = {item_id for item_id, _ in interests if customer_id and item_id in by_id}
+    if product_id:
         excluded.add(product_id)
-        for token, value in doc["vec"].items():
-            profile[token] += value * weight
-    norm = math.sqrt(sum(value * value for value in profile.values())) or 1.0
-    profile = {token: value / norm for token, value in profile.items()}
-    if not profile:
-        return []
-    return _rank(profile, store_id, limit, exclude=excluded, min_score=0.01)
+
+    cf_scores: Counter = Counter()
+    content_profile: Counter = Counter()
+    for item_id, weight in interests:
+        for related_id, count in neighbors.get(item_id, {}).items():
+            cf_scores[related_id] += weight * math.log1p(count)
+        source = by_id.get(item_id)
+        if source:
+            for token, value in source["vec"].items():
+                content_profile[token] += value * weight
+
+    profile_norm = math.sqrt(sum(value * value for value in content_profile.values())) or 1.0
+    content_profile = {token: value / profile_norm for token, value in content_profile.items()}
+    cb_scores = {doc["productId"]: _cosine(content_profile, doc["vec"])
+                 for doc in candidates} if content_profile else {}
+    cf_scores = {doc["productId"]: cf_scores.get(doc["productId"], 0.0)
+                 for doc in candidates}
+    now = datetime.now(timezone.utc)
+    pop_scores = {}
+    for doc in candidates:
+        created = doc.get("createdAt")
+        age_days = 365.0
+        if created:
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            age_days = max(0.0, (now - created.astimezone(timezone.utc)).total_seconds() / 86400)
+        recentness = 1 / (1 + age_days / 30)
+        signal = max(0, doc["soldCount"]) + purchase_popularity.get(doc["productId"], 0)
+        signal += max(0, doc["reviewCount"]) * max(0, doc["avgRating"]) / 5
+        pop_scores[doc["productId"]] = math.log1p(signal) + 0.1 * recentness
+
+    cf_norm, cb_norm, pop_norm = map(_normalized, (cf_scores, cb_scores, pop_scores))
+    if customer_id and interests and (cf_norm or cb_norm):
+        available_weights = {"cf": 0.5, "cb": 0.3, "pop": 0.2}
+        components = {"cf": cf_norm, "cb": cb_norm, "pop": pop_norm}
+        active_weight = sum(weight for name, weight in available_weights.items() if components[name])
+        scores = {
+            doc["productId"]: sum(
+                weight * components[name].get(doc["productId"], 0.0) / active_weight
+                for name, weight in available_weights.items() if components[name]
+            )
+            for doc in candidates
+        }
+        strategy = "hybrid-personalized"
+    elif product_id and cb_norm:
+        available_weights = {"cf": 0.5, "cb": 0.3, "pop": 0.2}
+        components = {"cf": cf_norm, "cb": cb_norm, "pop": pop_norm}
+        active_weight = sum(weight for name, weight in available_weights.items() if components[name])
+        scores = {
+            doc["productId"]: sum(
+                weight * components[name].get(doc["productId"], 0.0) / active_weight
+                for name, weight in available_weights.items() if components[name]
+            )
+            for doc in candidates
+        }
+        strategy = "hybrid-cart" if placement == "cart" else "hybrid-content"
+    else:
+        scores = pop_norm
+        strategy = "cold-start-popularity"
+
+    ranked = sorted(
+        (doc for doc in candidates if doc["productId"] not in excluded),
+        key=lambda doc: (scores.get(doc["productId"], 0.0), doc["soldCount"], doc["productId"]),
+        reverse=True,
+    )[:limit]
+    result = []
+    for doc in ranked:
+        reason = "frequently-bought-together" if cf_norm.get(doc["productId"], 0) > 0 else (
+            "content-similarity" if cb_norm.get(doc["productId"], 0) > 0 else "popular"
+        )
+        result.append({"productId": doc["productId"], "score": round(scores.get(doc["productId"], 0.0), 4), "reason": reason})
+    return result, strategy
+
+def personalized(customer_id: str, store_id: str | None, limit: int = 8) -> list[dict]:
+    """Rank in-stock products from a customer's recent views, cart actions and completed orders."""
+    rows, _strategy = recommend_hybrid(customer_id, store_id, limit)
+    by_id = {doc["productId"]: doc for doc in _load()}
+    return [{**by_id[row["productId"]], **row} for row in rows if row["productId"] in by_id]
 
 
 def best_sellers(store_id: str | None, limit: int = 8) -> list[dict]:
-    stock = _in_stock(store_id)
-    docs = [d for d in _load() if stock is None or d["productId"] in stock]
-    docs.sort(key=lambda d: d["soldCount"], reverse=True)
-    return [{"productId": d["productId"], "name": d["name"], "price": d["price"], "score": float(d["soldCount"])} for d in docs[:limit]]
+    rows, _strategy = recommend_hybrid(None, store_id, limit)
+    by_id = {doc["productId"]: doc for doc in _load()}
+    return [{**by_id[row["productId"]], **row} for row in rows if row["productId"] in by_id]

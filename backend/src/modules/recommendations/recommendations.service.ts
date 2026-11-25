@@ -34,7 +34,14 @@ export class RecommendationsService {
       const items = await this.hydrate(result.items.map((item) => item.productId), storeId);
       if (items.length) {
         const coldStart = !customer || result.strategy.toLowerCase().includes('cold');
-        return { items, personalizedItems: coldStart ? [] : items, bestSellerItems, coldStart, strategy: result.strategy };
+        const personalizedItems = customer && result.strategy.includes('personalized') ? items : [];
+        return {
+          items,
+          personalizedItems,
+          bestSellerItems: result.strategy.includes('popularity') ? items : bestSellerItems,
+          coldStart,
+          strategy: result.strategy,
+        };
       }
     } catch (error) {
       this.logger.warn(`Recommendation fallback: ${error instanceof Error ? error.message : String(error)}`);
@@ -43,10 +50,10 @@ export class RecommendationsService {
   }
 
   private async bestSellers(storeId: string) {
-    const stocked = await this.inventory.find({ storeId, quantity: { $gt: 0 } }).select('productId').lean().exec();
+    const stocked = await this.inventory.find({ storeId, $expr: { $gt: ['$quantity', { $ifNull: ['$reservedQuantity', 0] }] } }).select('productId').lean().exec();
     const rows = await this.products
       .find({ status: 'ACTIVE', productId: { $in: stocked.map((row) => row.productId) } })
-      .sort({ soldCount: -1 })
+      .sort({ soldCount: -1, avgRating: -1, reviewCount: -1, createdAt: -1 })
       .limit(LIMIT)
       .select('productId')
       .lean()
@@ -69,13 +76,15 @@ export class RecommendationsService {
       if (!product) return [];
       const saleActive = typeof product.salePrice === 'number' && !!product.saleStartDate && !!product.saleEndDate
         && product.saleStartDate <= now && product.saleEndDate >= now;
+      const availableStock = stockById.get(id) ?? 0;
+      if (availableStock <= 0) return [];
       return [{
         ...(product.toJSON() as Record<string, unknown>),
         name: product.productName,
         imageUrl: product.image,
         categoryName: categories.find((category) => category.categoryId === product.categoryId)?.categoryName ?? '',
         salePrice: saleActive ? product.salePrice : undefined,
-        stock: stockById.get(id) ?? 0,
+        stock: availableStock,
       }];
     });
   }
