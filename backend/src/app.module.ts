@@ -28,6 +28,7 @@ import { AiFeedbackModule } from './modules/ai-feedback/ai-feedback.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EmployeesModule } from './modules/employees/employees.module';
+import { InternalModule } from './modules/internal/internal.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { EmployeesModule } from './modules/employees/employees.module';
     RecommendationsModule,
     ChatModule,
     EmployeesModule,
+    InternalModule,
     // Them module moi (products, orders, ...) vao day
   ],
   controllers: [AppController],

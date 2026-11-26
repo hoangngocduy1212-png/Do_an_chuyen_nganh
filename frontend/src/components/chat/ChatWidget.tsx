@@ -159,7 +159,7 @@ export function ChatWidget({ open, onClose, resumeSessionId }: { open: boolean; 
       })]);
       if (response.status || response.needHandover) setSession((current) => current ? { ...current, status: response.status ?? 'HANDED_OVER' } : current);
     } catch {
-      setMessages((current) => [...current, newMessage('assistant', 'Trợ lý đang bận, bạn có muốn chuyển sang nhân viên CSKH không?', { id: `error-${crypto.randomUUID()}` })]);
+      setMessages((current) => [...current, newMessage('assistant', 'Trợ lý chưa phản hồi được do kết nối bị gián đoạn. Bạn thử gửi lại; nếu vẫn lỗi, bạn có muốn chuyển sang nhân viên CSKH không?', { id: `error-${crypto.randomUUID()}` })]);
     } finally { setSending(false); }
   }
 

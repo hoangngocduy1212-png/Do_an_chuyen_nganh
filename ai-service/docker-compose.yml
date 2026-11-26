@@ -1,0 +1,41 @@
+services:
+  ai-service:
+    build: .
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      QDRANT_URL: http://qdrant:6333
+      OLLAMA_URL: http://ollama:11434
+    ports: ["8000:8000"]
+    depends_on: [mongo, qdrant, ollama]
+
+  mongo:
+    image: mongo:7
+    volumes: [mongo_data:/data/db]
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes: [qdrant_data:/qdrant/storage]
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes: [ollama_data:/root/.ollama]
+    environment:
+      # Qwen (chat + ảnh) và bge-m3 (embedding, nhỏ) cùng nằm trong bộ nhớ nên cho phép 2 model.
+      OLLAMA_MAX_LOADED_MODELS: "2"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_KEEP_ALIVE: "5m"
+      OLLAMA_FLASH_ATTENTION: "1"
+    # Bật GPU NVIDIA (cần nvidia-container-toolkit), bỏ comment nếu có GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  mongo_data:
+  qdrant_data:
+  ollama_data:

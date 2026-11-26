@@ -28,3 +28,9 @@ ai-service/app/data/eval/recommender_full/
 mongo-data/
 *.tsbuildinfo
 .pytest_cache/
+
+# Dataset ảnh chatbot (không commit)
+ai-service/data/images/
+
+# Kết quả eval tạm
+ai-service/eval/last_results.json

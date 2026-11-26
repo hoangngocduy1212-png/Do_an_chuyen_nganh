@@ -1,0 +1,13 @@
+# Bộ tối thiểu để chạy chat local (STORE_BACKEND=memory, DATA_BACKEND=mock). Không kéo torch.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+httpx>=0.27
+pydantic-settings>=2.2
+python-multipart>=0.0.9
+pillow>=10.3
+qdrant-client>=1.9
+motor>=3.4
+# Tùy chọn khi cần đọc mã vạch (nhẹ):
+# zxing-cpp>=2.2
+# Chỉ cần khi dùng CLIP cho hàng tươi (nặng, kéo theo torch):
+# sentence-transformers>=3.0

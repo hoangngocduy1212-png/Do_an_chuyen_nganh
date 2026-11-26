@@ -60,16 +60,19 @@ export class ChatService {
     let sources: string[] = [];
     let needHandover = true;
     let products: unknown[] = [];
+    const started = Date.now();
     try {
       const result = await this.ai.chat({
         sessionId,
         message: content,
         storeId,
+        userId: session.customerId ?? user?.userId ?? sessionId,
         history: history.reverse().map((item) => ({ role: ROLES[item.senderType], content: item.content })),
         customerContext: await this.customerContext(session.customerId, storeId),
       });
       ({ answer, sources, needHandover } = result);
       if (storeId && result.productIds?.length) products = await this.recommendations.hydrate(result.productIds, storeId);
+      this.logger.log(`Chat AI xong sau ${Date.now() - started}ms, products=${result.productIds?.length ?? 0}`);
     } catch (error) {
       this.logger.warn(`Chat AI failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -98,7 +101,9 @@ export class ChatService {
     let needHandover = true;
     let products: unknown[] = [];
     try {
-      const result = await this.ai.analyzeImages(files, content, storeId);
+      const result = await this.ai.analyzeImages(
+        files, content, storeId, session.customerId ?? user?.userId ?? sessionId,
+      );
       answer = result.answer;
       needHandover = false;
       if (storeId && result.productIds.length) products = await this.recommendations.hydrate(result.productIds, storeId);
